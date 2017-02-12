@@ -10,7 +10,7 @@ Add this to your `Cargo.toml`:
 
 ~~~toml
 [dependencies]
-imprint = "^0.1.0"
+imprint = "^0.1.1"
 ~~~
 
 Next, prepend this to the root module of your crate:

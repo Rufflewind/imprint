@@ -9,9 +9,16 @@
 //! [eq]: https://hackage.haskell.org/package/eq
 //! [sound]: https://reddit.com/r/rust/comments/3oo0oe
 
+extern crate num;
+extern crate num_iter;
+
+pub mod arith;
+pub mod ix;
+
 use std::borrow::Borrow;
 use std::cell::Cell;
 use std::marker::PhantomData;
+use std::ops::Deref;
 use std::{fmt, mem};
 
 /// Like `PhantomData` but ensures that `T` is always invariant.
@@ -42,7 +49,7 @@ pub type PhantomInvariantLifetime<'a> = PhantomData<Cell<&'a mut ()>>;
 /// ## Example
 ///
 /// ```
-/// use imprint::{Val, imprint};
+/// use imprint::{IntoInner, Val, imprint};
 ///
 /// imprint(42, |n: Val<i64>| {
 ///     assert_eq!(n.into_inner(), 42);
@@ -53,34 +60,40 @@ pub fn imprint<F, R, T>(value: T, callback: F) -> R
     callback(Val { tag: PhantomData, inner: value })
 }
 
-/// A value marked at the type level.
+/// A value imprinted at the type level.
 ///
 /// A `Val<'x, T>` value contains an instance of `T` as well as a marker
 /// `'x` that reflects the value of that instance at the type level.  This
 /// provides a type-safe mechanism to constrain values even if their actual
 /// values are not known at compile time.
 ///
-/// If the underlying type `T` is `PartialEq`-pure, then for every marker
-/// `'x`, the type `Val<'x, T>` contains precisely one value.  Hence,
-/// `Val<'x, T>` may be considered a *singleton type* (unrelated to
-/// "singletons" in OOP).
+/// `Val` can be constructed using either [`imprint(...)`](fn.imprint.html) or
+/// `Default::default()`.
 ///
-/// A type `T` is said to be `PartialEq`-pure if, given any `r1: &T` and `r2:
-/// &T`, and any arbitrary *unsafe-free* function `f(&T, &T)`, the changing
-/// the evaluation order between `r1 == r2` and `f(r1, r2)` does not alter the
-/// observable behavior of the program.  In other words, `Eq`-pure means that
-/// every use of immutable references preserves equality.
+/// The underlying value can be obtained either by dererefencing or by calling
+/// [`.into_inner()`](trait.IntoInner.html#tymethod.into_inner).
 ///
-/// Note: An *unsafe-free* function is a function that does not call any other
-/// unsafe functions directly.  (TODO: How to handle modular boundary?)
+/// ## Properties
 ///
-/// Usually, anything that contains `Cell` or `RefCell` are not `*`-pure.
+/// The notion of "value" is determined by the equivalence relation formed by
+/// `Eq`, or the partial equivalence relation formed by `PartialEq`.
 ///
-/// `Val` values can be constructed using either
-/// [`imprint(...)`](fn.imprint.html) or `Default::default()`.
+/// We expect the value of `T` must be immutable through `&T`.  Otherwise, the
+/// properties in this section would not hold.  Therefore, `Val` is not very
+/// useful for types with interior mutability like `Cell` or `RefCell`.
+/// Moreover, keep in mind that any unsafe code can violate these properties
+/// as well.
 ///
-/// The underlying value can be extracted using `.into_inner()`, `.borrow()`,
-/// or `.borrow_mut()`.
+///   - If `T` forms an equivalence relation, then for every marker `'x`, the
+///     type `Val<'x, T>` contains precisely one value, and each value
+///     corresponds to a unique `'x`.  Hence, `Val<'x, T>` may be considered a
+///     *singleton type* (unrelated to "singletons" in OOP).
+///
+///   - On the other hand, if `T` forms a partial equivalence relation, then
+///     for every marker `'x`, the type `Val<'x, T>` contains either a single
+///     identifiable value (for which equality is reflexive), or a single
+///     unidentifiable value (one for which equality is nonreflexive), and
+///     each identifiable value corresponds to a unique marker `'x`.
 ///
 #[derive(Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Val<'x, T> {
@@ -88,22 +101,26 @@ pub struct Val<'x, T> {
     inner: T,
 }
 
-impl<'x, T: PartialEq> Val<'x, T> {
-    /// Extracts the value.
-    pub fn into_inner(self) -> T {
+/// Allows the inner value to be extracted from a wrapped value.
+pub trait IntoInner {
+    type Inner;
+    /// Extracts the inner value.
+    fn into_inner(self) -> Self::Inner;
+}
+
+impl<'x, T> IntoInner for Val<'x, T> {
+    type Inner = T;
+    fn into_inner(self) -> Self::Inner {
         self.inner
     }
+}
 
+impl<'x, T: PartialEq> Val<'x, T> {
     /// Checks whether two values are equal.  If they are, evidence of their
-    /// type equality is returned.
+    /// equality is returned.
     pub fn eq<'y>(&self, other: &Val<'y, T>)
                   -> Option<TyEq<Self, Val<'y, T>>> {
-        let self_value: &T = self.borrow();
-        if self_value == other.borrow() {
-            Some(unsafe { mem::transmute(TyEq::<Self, Self>::refl()) })
-        } else {
-            None
-        }
+        arith::partial_equal(self, other).map(|eq| eq.into_ty_eq())
     }
 }
 
@@ -124,12 +141,19 @@ impl<T: Default> Default for Val<'static, T> {
 
 impl<'x, T> AsRef<T> for Val<'x, T> {
     fn as_ref(&self) -> &T {
-        self.borrow()
+        &**self
     }
 }
 
 impl<'x, T> Borrow<T> for Val<'x, T> {
     fn borrow(&self) -> &T {
+        &**self
+    }
+}
+
+impl<'x, T> Deref for Val<'x, T> {
+    type Target = T;
+    fn deref(&self) -> &T {
         &self.inner
     }
 }
@@ -199,11 +223,12 @@ impl<T: ?Sized, U: ?Sized> TyEq<T, U> {
     ///
     /// ```
     /// # /*
-    /// fn apply(TyEq<T, U>, <F as TyFn<T>>::Output) -> <F as TyFn<U>>::Output
+    /// fn apply(TyEq<T, U>, FT) -> FU
+    ///   where T: TyFn<F, Output=FT>, U: TyFn<F, Output=FU>
     /// # */
     /// ```
     ///
-    /// In Haskell, it'd be simply `TyEq t u -> TyFn t f -> TyFn u f`.
+    /// In Haskell, it'd be simply `TyEq t u -> f t -> f u`.
     ///
     /// ## Example
     ///
