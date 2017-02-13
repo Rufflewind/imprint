@@ -2,10 +2,9 @@
 
 [![Crates.io](https://img.shields.io/crates/v/imprint.svg)](https://crates.io/crates/imprint)
 
-**Quick links:** [Documentation](https://docs.rs/imprint)
+**Quick links:** [Documentation](https://rufflewind.com/imprint)
 
 A highly experimental Rust library for imprinting values at the type level.
-
 
 ## Usage
 
@@ -13,7 +12,7 @@ Add this to your `Cargo.toml`:
 
 ~~~toml
 [dependencies]
-imprint = "^0.2.0"
+imprint = "*"
 ~~~
 
 Next, prepend this to the root module of your crate:
@@ -26,6 +25,7 @@ extern crate imprint;
 
   - [Type-level values](docs/type-level-values.md)
   - [Type equality](docs/type-equality.md)
+  - [Indexing](docs/indexing.md)
 
 ## License
 

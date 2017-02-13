@@ -84,7 +84,7 @@ pub fn imprint<F, R, T>(value: T, callback: F) -> R
 /// The notion of "value" is determined by the equivalence relation formed by
 /// `Eq`, or the partial equivalence relation formed by `PartialEq`.
 ///
-/// We expect the value of `T` must be immutable through `&T`.  Otherwise, the
+/// We expect the value of `T` to be immutable through `&T`.  Otherwise, the
 /// properties in this section would not hold.  Therefore, `Val` is not very
 /// useful for types with interior mutability like `Cell` or `RefCell`.
 /// Moreover, keep in mind that any unsafe code can violate these properties
@@ -98,8 +98,8 @@ pub fn imprint<F, R, T>(value: T, callback: F) -> R
 ///   - On the other hand, if `T` forms a partial equivalence relation, then
 ///     for every marker `'x`, the type `Val<'x, T>` contains either a single
 ///     identifiable value (for which equality is reflexive), or a single
-///     unidentifiable value (one for which equality is nonreflexive), and
-///     each identifiable value corresponds to a unique marker `'x`.
+///     unidentifiable value (for which equality is nonreflexive), and each
+///     identifiable value corresponds to a unique marker `'x`.
 ///
 #[derive(Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Val<'x, T> {

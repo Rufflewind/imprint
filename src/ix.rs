@@ -3,7 +3,7 @@ use std::ops::{Deref, DerefMut, Index, IndexMut};
 use num::Zero;
 use num_iter::{Range, range};
 use super::*;
-use arith::{Less, GreaterEqual, compare};
+use arith::{Less, LessEqual, compare};
 
 /// Represents a value less than `'l`.
 ///
@@ -22,7 +22,7 @@ impl<'l> Ix<'l> {
     pub fn new<'i>(index: Val<'i, usize>,
                    _: Less<Val<'i, usize>, Val<'l, usize>>)
                    -> Self {
-        unsafe { Self::from_raw(index.into_inner()) }
+        Ix { len: PhantomData, inner: index.into_inner() }
     }
 
     pub fn try_new(index: usize, len: Val<'l, usize>) -> Option<Self> {
@@ -34,13 +34,20 @@ impl<'l> Ix<'l> {
         })
     }
 
-    pub fn check<'m>(self, _: GreaterEqual<Val<'m, usize>, Val<'l, usize>>)
+    pub fn with<F, R>(self, callback: F) -> R
+        where F: for<'i> FnOnce(Val<'i, usize>, Less<Val<'i, usize>, Val<'l, usize>>) -> R {
+        unsafe { callback(Val::known(self.inner), Less::conjure()) }
+    }
+
+    pub fn convert<'m>(self, le: LessEqual<Val<'l, usize>, Val<'m, usize>>)
                      -> Ix<'m> {
-        unsafe { Ix::from_raw(self.into_inner()) }
+        self.with(|i, lt| Ix::new(i, lt.compr(le)))
     }
 
     pub unsafe fn from_raw(index: usize) -> Self {
-        Ix { len: PhantomData, inner: index }
+        imprint(index, |i| {
+            Ix::new(i, Less::conjure())
+        })
     }
 }
 

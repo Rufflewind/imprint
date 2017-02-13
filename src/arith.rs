@@ -1,3 +1,6 @@
+//! As with `Val`, the soundness and usefulness of these traits rely on the
+//! type contained.  See [`Val`](../struct.Val.html#properties) for more info.
+
 use std::fmt;
 use std::marker::PhantomData;
 use std::ops::Deref;
@@ -5,6 +8,10 @@ use super::{PhantomInvariantData, TyEq, Val};
 
 macro_rules! impl_all {
     ( $name:ident ) => {
+        impl<X: ?Sized, Y: ?Sized> $name<X, Y> {
+            pub unsafe fn conjure() -> Self { $name(PhantomData, PhantomData) }
+        }
+
         // shut up clippy: we don't want Clone constraints on X or Y
         #[cfg_attr(feature = "cargo-clippy", allow(expl_impl_clone_on_copy))]
         impl<X: ?Sized, Y: ?Sized> Clone for $name<X, Y> {
@@ -22,11 +29,24 @@ macro_rules! impl_all {
 }
 
 /// Equal to.
+///
+/// This is separate from `TyEq` because `TyEq` only holds for `Val`, whereas
+/// `Equal` can be used in more general contexts.
 pub struct Equal<X: ?Sized, Y: ?Sized>(
     PhantomInvariantData<X>,
     PhantomInvariantData<Y>,
 );
 impl_all!(Equal);
+
+impl<X: ?Sized, Y: ?Sized> Equal<X, Y> {
+    pub fn sym(self) -> Equal<Y, X> {
+        unsafe { Equal::conjure() }
+    }
+
+    pub fn trans<Z: ?Sized>(self, _: Equal<Y, Z>) -> Equal<X, Z> {
+        unsafe { Equal::conjure() }
+    }
+}
 
 impl<'x, 'y, T> Equal<Val<'x, T>, Val<'y, T>> {
     /// If two `Val`s are equal, then their types are equal too.
@@ -50,24 +70,34 @@ pub struct Less<X: ?Sized, Y: ?Sized>(
 );
 impl_all!(Less);
 
+impl<X: ?Sized, Y: ?Sized> Less<X, Y> {
+    /// `((X < Y), (X = Z)) -> (Z < Y)`
+    pub fn compl<Z: ?Sized>(self, _: Equal<X, Z>) -> Less<Z, Y> {
+        unsafe { Less::conjure() }
+    }
+
+    /// `((X < Y), (Y <= Z)) -> (X < Z)`
+    pub fn compr<Z: ?Sized>(self, _: LessEqual<Y, Z>) -> Less<X, Z> {
+        unsafe { Less::conjure() }
+    }
+}
+
 /// Greater than.
-pub struct Greater<X: ?Sized, Y: ?Sized>(
-    PhantomInvariantData<X>,
-    PhantomInvariantData<Y>,
-);
-impl_all!(Greater);
+pub type Greater<X, Y> = Less<Y, X>;
 
 /// Less than or equal to.
 pub type LessEqual<X, Y> = Result<Less<X, Y>, Equal<X, Y>>;
 
 /// Greater than or equal to.
-pub type GreaterEqual<X, Y> = Result<Greater<X, Y>, Equal<X, Y>>;
+pub type GreaterEqual<X, Y> = LessEqual<Y, X>;
 
 /// Compare two values for partial equality.
 pub fn partial_equal<X, Y, T>(x: &X, y: &Y) -> Option<Equal<X, Y>>
-    where X: Deref<Target=T>, Y: Deref<Target=T>, T: PartialEq + ?Sized {
+    where X: Deref<Target=T> + ?Sized,
+          Y: Deref<Target=T> + ?Sized,
+          T: PartialEq + ?Sized {
     if &**x == &**y {
-        Some(Equal(PhantomData, PhantomData))
+        Some(unsafe { Equal::conjure() })
     } else {
         None
     }
@@ -75,11 +105,13 @@ pub fn partial_equal<X, Y, T>(x: &X, y: &Y) -> Option<Equal<X, Y>>
 
 /// Compare two values for equality.
 pub fn equal<X, Y, T>(x: &X, y: &Y) -> Result<Equal<X, Y>, NotEqual<X, Y>>
-    where X: Deref<Target=T>, Y: Deref<Target=T>, T: Eq + ?Sized {
+    where X: Deref<Target=T> + ?Sized,
+          Y: Deref<Target=T> + ?Sized,
+          T: Eq + ?Sized {
     if &**x == &**y {
-        Ok(Equal(PhantomData, PhantomData))
+        Ok(unsafe { Equal::conjure() })
     } else {
-        Err(NotEqual(PhantomData, PhantomData))
+        Err(unsafe { NotEqual::conjure() })
     }
 }
 
@@ -87,26 +119,30 @@ pub fn equal<X, Y, T>(x: &X, y: &Y) -> Result<Equal<X, Y>, NotEqual<X, Y>>
 pub fn partial_compare<X, Y, T>(x: &X, y: &Y)
                                 -> Option<Result<Less<X, Y>,
                                                  GreaterEqual<X, Y>>>
-    where X: Deref<Target=T>, Y: Deref<Target=T>, T: Ord + ?Sized {
+    where X: Deref<Target=T> + ?Sized,
+          Y: Deref<Target=T> + ?Sized,
+          T: Ord + ?Sized {
     use std::cmp::Ordering;
     match PartialOrd::partial_cmp(&**x, &**y) {
         None => None,
         Some(ordering) => Some(match ordering {
-            Ordering::Less => Ok(Less(PhantomData, PhantomData)),
-            Ordering::Equal => Err(Err(Equal(PhantomData, PhantomData))),
-            Ordering::Greater => Err(Ok(Greater(PhantomData, PhantomData))),
+            Ordering::Less => Ok(unsafe { Less::conjure() }),
+            Ordering::Equal => Err(Err(unsafe { Equal::conjure() })),
+            Ordering::Greater => Err(Ok(unsafe { Less::conjure() })),
         }),
     }
 }
 
 /// Compare two values for ordering.
 pub fn compare<X, Y, T>(x: &X, y: &Y) -> Result<Less<X, Y>, GreaterEqual<X, Y>>
-    where X: Deref<Target=T>, Y: Deref<Target=T>, T: Ord + ?Sized {
+    where X: Deref<Target=T> + ?Sized,
+          Y: Deref<Target=T> + ?Sized,
+          T: Ord + ?Sized {
     use std::cmp::Ordering;
     match Ord::cmp(&**x, &**y) {
-        Ordering::Less => Ok(Less(PhantomData, PhantomData)),
-        Ordering::Equal => Err(Err(Equal(PhantomData, PhantomData))),
-        Ordering::Greater => Err(Ok(Greater(PhantomData, PhantomData))),
+        Ordering::Less => Ok(unsafe { Less::conjure() }),
+        Ordering::Equal => Err(Err(unsafe { Equal::conjure() })),
+        Ordering::Greater => Err(Ok(unsafe { Less::conjure() })),
     }
 }
 
