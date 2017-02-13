@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["BoxedSl",""]],"trait":[["Extent",""],["GenericBorrow","Similar to `Borrow` but allows an arbitrary return type."],["NewLen","Used to determine how lengths are stored.  This is largely an implementation detail and should not be implemented by the users."]]});

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `Val` struct in crate `imprint`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, Val">
+
+    <title>imprint::Val - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../normalize.css">
+    <link rel="stylesheet" type="text/css" href="../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'><a href='index.html'>imprint</a></p><script>window.sidebarCurrent = {name: 'Val', ty: 'struct', relpath: ''};</script><script defer src="sidebar-items.js"></script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content struct">
+<h1 class='fqn'><span class='in-band'>Struct <a href='index.html'>imprint</a>::<wbr><a class='struct' href=''>Val</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a class='srclink' href='../src/imprint/lib.rs.html#118-121' title='goto source code'>[src]</a></span></h1>
+<pre class='rust struct'>pub struct Val&lt;'x, T&gt; { /* fields omitted */ }</pre><div class='docblock'><p>A value imprinted at the type level.</p>
+
+<p>A <code>Val&lt;&#39;x, T&gt;</code> value contains an instance of <code>T</code> as well as a marker
+<code>&#39;x</code> that reflects the value of that instance at the type level.  This
+provides a type-safe mechanism to constrain values even if their actual
+values are not known at compile time.</p>
+
+<p><code>Val</code> can be constructed using either <a href="fn.imprint.html"><code>imprint(...)</code></a> or
+<code>Default::default()</code>.</p>
+
+<p>The underlying value can be obtained either by dererefencing or by calling
+<a href="trait.Value.html#tymethod.value"><code>.value()</code></a>.</p>
+
+<h2 id='properties' class='section-header'><a href='#properties'>Properties</a></h2>
+<p>The notion of &quot;value&quot; is determined by the equivalence relation formed by
+<code>Eq</code>, or the partial equivalence relation formed by <code>PartialEq</code>.</p>
+
+<p>We expect the value of <code>T</code> to be immutable through <code>&amp;T</code>.  Otherwise, the
+properties in this section would not hold.  Therefore, <code>Val</code> is not very
+useful for types with interior mutability like <code>Cell</code> or <code>RefCell</code>.
+Moreover, keep in mind that any unsafe code can violate these properties
+as well.</p>
+
+<ul>
+<li><p>If <code>T</code> forms an equivalence relation, then for every marker <code>&#39;x</code>, the
+type <code>Val&lt;&#39;x, T&gt;</code> contains precisely one value, and each value
+corresponds to a unique <code>&#39;x</code>.  Hence, <code>Val&lt;&#39;x, T&gt;</code> may be considered a
+<em>singleton type</em> (unrelated to &quot;singletons&quot; in OOP).</p></li>
+<li><p>On the other hand, if <code>T</code> forms a partial equivalence relation, then
+for every marker <code>&#39;x</code>, the type <code>Val&lt;&#39;x, T&gt;</code> contains either a single
+identifiable value (for which equality is reflexive), or a single
+unidentifiable value (for which equality is nonreflexive), and each
+identifiable value corresponds to a unique marker <code>&#39;x</code>.</p></li>
+</ul>
+</div><h2 id='methods'>Methods</h2><h3 class='impl'><span class='in-band'><code>impl&lt;'x, T&gt; <a class='struct' href='../imprint/struct.Val.html' title='struct imprint::Val'>Val</a>&lt;'x, T&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/imprint/lib.rs.html#123-131' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.as_val_ref' class='method'><span id='as_val_ref.v' class='invisible'><code>fn <a href='#method.as_val_ref' class='fnname'>as_val_ref</a>&lt;'a&gt;(&amp;'a self) -&gt; <a class='struct' href='../imprint/struct.Val.html' title='struct imprint::Val'>Val</a>&lt;'x, &amp;'a T&gt;</code></span></h4>
+<h4 id='method.known' class='method'><span id='known.v' class='invisible'><code>unsafe fn <a href='#method.known' class='fnname'>known</a>(value: T) -&gt; Self</code></span></h4>
+</div><h3 class='impl'><span class='in-band'><code>impl&lt;'a, 'x, T:&nbsp;<a class='trait' href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html' title='trait core::clone::Clone'>Clone</a>&gt; <a class='struct' href='../imprint/struct.Val.html' title='struct imprint::Val'>Val</a>&lt;'x, &amp;'a T&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/imprint/lib.rs.html#133-137' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.cloned' class='method'><span id='cloned.v' class='invisible'><code>fn <a href='#method.cloned' class='fnname'>cloned</a>(self) -&gt; <a class='struct' href='../imprint/struct.Val.html' title='struct imprint::Val'>Val</a>&lt;'x, T&gt;</code></span></h4>
+</div><h3 class='impl'><span class='in-band'><code>impl&lt;'x, T:&nbsp;<a class='trait' href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html' title='trait core::cmp::PartialEq'>PartialEq</a>&gt; <a class='struct' href='../imprint/struct.Val.html' title='struct imprint::Val'>Val</a>&lt;'x, T&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/imprint/lib.rs.html#139-146' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.eq' class='method'><span id='eq.v' class='invisible'><code>fn <a href='#method.eq' class='fnname'>eq</a>&lt;'y&gt;(&amp;self, other: &amp;<a class='struct' href='../imprint/struct.Val.html' title='struct imprint::Val'>Val</a>&lt;'y, T&gt;) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/option/enum.Option.html' title='enum core::option::Option'>Option</a>&lt;<a class='struct' href='../imprint/struct.TyEq.html' title='struct imprint::TyEq'>TyEq</a>&lt;Self, <a class='struct' href='../imprint/struct.Val.html' title='struct imprint::Val'>Val</a>&lt;'y, T&gt;&gt;&gt;</code></span></h4>
+<div class='docblock'><p>Checks whether two values are equal.  If they are, evidence of their
+equality is returned.</p>
+</div></div><h2 id='implementations'>Trait Implementations</h2><h3 class='impl'><span class='in-band'><code>impl&lt;'x, T:&nbsp;<a class='trait' href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html' title='trait core::clone::Clone'>Clone</a>&gt; <a class='trait' href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html' title='trait core::clone::Clone'>Clone</a> for <a class='struct' href='../imprint/struct.Val.html' title='struct imprint::Val'>Val</a>&lt;'x, T&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/imprint/lib.rs.html#117' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.clone' class='method'><span id='clone.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#tymethod.clone' class='fnname'>clone</a>(&amp;self) -&gt; <a class='struct' href='../imprint/struct.Val.html' title='struct imprint::Val'>Val</a>&lt;'x, T&gt;</code></span></h4>
+<div class='docblock'><p>Returns a copy of the value. <a href="https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#tymethod.clone">Read more</a></p>
+</div><h4 id='method.clone_from' class='method'><span id='clone_from.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone_from' class='fnname'>clone_from</a>(&amp;mut self, source: &amp;Self)</code><div class='since' title='Stable since Rust version 1.0.0'>1.0.0</div></span></h4>
+<div class='docblock'><p>Performs copy-assignment from <code>source</code>. <a href="https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone_from">Read more</a></p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl&lt;'x, T:&nbsp;<a class='trait' href='https://doc.rust-lang.org/nightly/core/marker/trait.Copy.html' title='trait core::marker::Copy'>Copy</a>&gt; <a class='trait' href='https://doc.rust-lang.org/nightly/core/marker/trait.Copy.html' title='trait core::marker::Copy'>Copy</a> for <a class='struct' href='../imprint/struct.Val.html' title='struct imprint::Val'>Val</a>&lt;'x, T&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/imprint/lib.rs.html#117' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'></div><h3 class='impl'><span class='in-band'><code>impl&lt;'x, T:&nbsp;<a class='trait' href='https://doc.rust-lang.org/nightly/core/cmp/trait.Eq.html' title='trait core::cmp::Eq'>Eq</a>&gt; <a class='trait' href='https://doc.rust-lang.org/nightly/core/cmp/trait.Eq.html' title='trait core::cmp::Eq'>Eq</a> for <a class='struct' href='../imprint/struct.Val.html' title='struct imprint::Val'>Val</a>&lt;'x, T&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/imprint/lib.rs.html#117' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'></div><h3 class='impl'><span class='in-band'><code>impl&lt;'x, T:&nbsp;<a class='trait' href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html' title='trait core::cmp::PartialEq'>PartialEq</a>&gt; <a class='trait' href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html' title='trait core::cmp::PartialEq'>PartialEq</a> for <a class='struct' href='../imprint/struct.Val.html' title='struct imprint::Val'>Val</a>&lt;'x, T&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/imprint/lib.rs.html#117' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.eq-1' class='method'><span id='eq.v-1' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html#tymethod.eq' class='fnname'>eq</a>(&amp;self, __arg_0: &amp;<a class='struct' href='../imprint/struct.Val.html' title='struct imprint::Val'>Val</a>&lt;'x, T&gt;) -&gt; <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.bool.html'>bool</a></code></span></h4>
+<div class='docblock'><p>This method tests for <code>self</code> and <code>other</code> values to be equal, and is used by <code>==</code>. <a href="https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html#tymethod.eq">Read more</a></p>
+</div><h4 id='method.ne' class='method'><span id='ne.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html#method.ne' class='fnname'>ne</a>(&amp;self, __arg_0: &amp;<a class='struct' href='../imprint/struct.Val.html' title='struct imprint::Val'>Val</a>&lt;'x, T&gt;) -&gt; <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.bool.html'>bool</a></code></span></h4>
+<div class='docblock'><p>This method tests for <code>!=</code>.</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl&lt;'x, T:&nbsp;<a class='trait' href='https://doc.rust-lang.org/nightly/core/cmp/trait.Ord.html' title='trait core::cmp::Ord'>Ord</a>&gt; <a class='trait' href='https://doc.rust-lang.org/nightly/core/cmp/trait.Ord.html' title='trait core::cmp::Ord'>Ord</a> for <a class='struct' href='../imprint/struct.Val.html' title='struct imprint::Val'>Val</a>&lt;'x, T&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/imprint/lib.rs.html#117' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.cmp' class='method'><span id='cmp.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/cmp/trait.Ord.html#tymethod.cmp' class='fnname'>cmp</a>(&amp;self, __arg_0: &amp;<a class='struct' href='../imprint/struct.Val.html' title='struct imprint::Val'>Val</a>&lt;'x, T&gt;) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/cmp/enum.Ordering.html' title='enum core::cmp::Ordering'>Ordering</a></code></span></h4>
+<div class='docblock'><p>This method returns an <code>Ordering</code> between <code>self</code> and <code>other</code>. <a href="https://doc.rust-lang.org/nightly/core/cmp/trait.Ord.html#tymethod.cmp">Read more</a></p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl&lt;'x, T:&nbsp;<a class='trait' href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialOrd.html' title='trait core::cmp::PartialOrd'>PartialOrd</a>&gt; <a class='trait' href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialOrd.html' title='trait core::cmp::PartialOrd'>PartialOrd</a> for <a class='struct' href='../imprint/struct.Val.html' title='struct imprint::Val'>Val</a>&lt;'x, T&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/imprint/lib.rs.html#117' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.partial_cmp' class='method'><span id='partial_cmp.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialOrd.html#tymethod.partial_cmp' class='fnname'>partial_cmp</a>(&amp;self, __arg_0: &amp;<a class='struct' href='../imprint/struct.Val.html' title='struct imprint::Val'>Val</a>&lt;'x, T&gt;) -&gt; <a class='enum' href='https://doc.rust-lang.org/nightly/core/option/enum.Option.html' title='enum core::option::Option'>Option</a>&lt;<a class='enum' href='https://doc.rust-lang.org/nightly/core/cmp/enum.Ordering.html' title='enum core::cmp::Ordering'>Ordering</a>&gt;</code></span></h4>
+<div class='docblock'><p>This method returns an ordering between <code>self</code> and <code>other</code> values if one exists. <a href="https://doc.rust-lang.org/nightly/core/cmp/trait.PartialOrd.html#tymethod.partial_cmp">Read more</a></p>
+</div><h4 id='method.lt' class='method'><span id='lt.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialOrd.html#method.lt' class='fnname'>lt</a>(&amp;self, __arg_0: &amp;<a class='struct' href='../imprint/struct.Val.html' title='struct imprint::Val'>Val</a>&lt;'x, T&gt;) -&gt; <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.bool.html'>bool</a></code></span></h4>
+<div class='docblock'><p>This method tests less than (for <code>self</code> and <code>other</code>) and is used by the <code>&lt;</code> operator. <a href="https://doc.rust-lang.org/nightly/core/cmp/trait.PartialOrd.html#method.lt">Read more</a></p>
+</div><h4 id='method.le' class='method'><span id='le.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialOrd.html#method.le' class='fnname'>le</a>(&amp;self, __arg_0: &amp;<a class='struct' href='../imprint/struct.Val.html' title='struct imprint::Val'>Val</a>&lt;'x, T&gt;) -&gt; <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.bool.html'>bool</a></code></span></h4>
+<div class='docblock'><p>This method tests less than or equal to (for <code>self</code> and <code>other</code>) and is used by the <code>&lt;=</code> operator. <a href="https://doc.rust-lang.org/nightly/core/cmp/trait.PartialOrd.html#method.le">Read more</a></p>
+</div><h4 id='method.gt' class='method'><span id='gt.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialOrd.html#method.gt' class='fnname'>gt</a>(&amp;self, __arg_0: &amp;<a class='struct' href='../imprint/struct.Val.html' title='struct imprint::Val'>Val</a>&lt;'x, T&gt;) -&gt; <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.bool.html'>bool</a></code></span></h4>
+<div class='docblock'><p>This method tests greater than (for <code>self</code> and <code>other</code>) and is used by the <code>&gt;</code> operator. <a href="https://doc.rust-lang.org/nightly/core/cmp/trait.PartialOrd.html#method.gt">Read more</a></p>
+</div><h4 id='method.ge' class='method'><span id='ge.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialOrd.html#method.ge' class='fnname'>ge</a>(&amp;self, __arg_0: &amp;<a class='struct' href='../imprint/struct.Val.html' title='struct imprint::Val'>Val</a>&lt;'x, T&gt;) -&gt; <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.bool.html'>bool</a></code></span></h4>
+<div class='docblock'><p>This method tests greater than or equal to (for <code>self</code> and <code>other</code>) and is used by the <code>&gt;=</code> operator. <a href="https://doc.rust-lang.org/nightly/core/cmp/trait.PartialOrd.html#method.ge">Read more</a></p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl&lt;'x, T:&nbsp;<a class='trait' href='https://doc.rust-lang.org/nightly/core/hash/trait.Hash.html' title='trait core::hash::Hash'>Hash</a>&gt; <a class='trait' href='https://doc.rust-lang.org/nightly/core/hash/trait.Hash.html' title='trait core::hash::Hash'>Hash</a> for <a class='struct' href='../imprint/struct.Val.html' title='struct imprint::Val'>Val</a>&lt;'x, T&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/imprint/lib.rs.html#117' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.hash' class='method'><span id='hash.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/hash/trait.Hash.html#tymethod.hash' class='fnname'>hash</a>&lt;__HT:&nbsp;<a class='trait' href='https://doc.rust-lang.org/nightly/core/hash/trait.Hasher.html' title='trait core::hash::Hasher'>Hasher</a>&gt;(&amp;self, __arg_0: &amp;mut __HT)</code></span></h4>
+<div class='docblock'><p>Feeds this value into the state given, updating the hasher as necessary.</p>
+</div><h4 id='method.hash_slice' class='method'><span id='hash_slice.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/hash/trait.Hash.html#method.hash_slice' class='fnname'>hash_slice</a>&lt;H&gt;(data: <a class='primitive' href='https://doc.rust-lang.org/nightly/std/primitive.slice.html'>&amp;[Self]</a>, state: &amp;mut H) <span class='where fmt-newline'>where H: <a class='trait' href='https://doc.rust-lang.org/nightly/core/hash/trait.Hasher.html' title='trait core::hash::Hasher'>Hasher</a></span></code><div class='since' title='Stable since Rust version 1.3.0'>1.3.0</div></span></h4>
+<div class='docblock'><p>Feeds a slice of this type into the state provided.</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl&lt;'x, T:&nbsp;<a class='trait' href='https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html' title='trait core::fmt::Debug'>Debug</a>&gt; <a class='trait' href='https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html' title='trait core::fmt::Debug'>Debug</a> for <a class='struct' href='../imprint/struct.Val.html' title='struct imprint::Val'>Val</a>&lt;'x, T&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/imprint/lib.rs.html#148-154' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.fmt' class='method'><span id='fmt.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html#tymethod.fmt' class='fnname'>fmt</a>(&amp;self, f: &amp;mut <a class='struct' href='https://doc.rust-lang.org/nightly/core/fmt/struct.Formatter.html' title='struct core::fmt::Formatter'>Formatter</a>) -&gt; <a class='type' href='https://doc.rust-lang.org/nightly/core/fmt/type.Result.html' title='type core::fmt::Result'>Result</a></code></span></h4>
+<div class='docblock'><p>Formats the value using the given formatter.</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl&lt;T:&nbsp;<a class='trait' href='https://doc.rust-lang.org/nightly/core/default/trait.Default.html' title='trait core::default::Default'>Default</a>&gt; <a class='trait' href='https://doc.rust-lang.org/nightly/core/default/trait.Default.html' title='trait core::default::Default'>Default</a> for <a class='struct' href='../imprint/struct.Val.html' title='struct imprint::Val'>Val</a>&lt;'static, T&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/imprint/lib.rs.html#157-161' title='goto source code'>[src]</a></span></h3>
+<div class='docblock'><p>The default value always has the special marker of <code>&#39;static</code>.</p>
+</div><div class='impl-items'><h4 id='method.default' class='method'><span id='default.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/default/trait.Default.html#tymethod.default' class='fnname'>default</a>() -&gt; Self</code></span></h4>
+<div class='docblock'><p>Returns the &quot;default value&quot; for a type. <a href="https://doc.rust-lang.org/nightly/core/default/trait.Default.html#tymethod.default">Read more</a></p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl&lt;'x, T&gt; <a class='trait' href='https://doc.rust-lang.org/nightly/core/convert/trait.AsRef.html' title='trait core::convert::AsRef'>AsRef</a>&lt;T&gt; for <a class='struct' href='../imprint/struct.Val.html' title='struct imprint::Val'>Val</a>&lt;'x, T&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/imprint/lib.rs.html#163-167' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.as_ref' class='method'><span id='as_ref.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/convert/trait.AsRef.html#tymethod.as_ref' class='fnname'>as_ref</a>(&amp;self) -&gt; &amp;T</code></span></h4>
+<div class='docblock'><p>Performs the conversion.</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl&lt;'x, T&gt; <a class='trait' href='https://doc.rust-lang.org/nightly/core/borrow/trait.Borrow.html' title='trait core::borrow::Borrow'>Borrow</a>&lt;T&gt; for <a class='struct' href='../imprint/struct.Val.html' title='struct imprint::Val'>Val</a>&lt;'x, T&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/imprint/lib.rs.html#169-173' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.borrow' class='method'><span id='borrow.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/borrow/trait.Borrow.html#tymethod.borrow' class='fnname'>borrow</a>(&amp;self) -&gt; &amp;T</code></span></h4>
+<div class='docblock'><p>Immutably borrows from an owned value. <a href="https://doc.rust-lang.org/nightly/core/borrow/trait.Borrow.html#tymethod.borrow">Read more</a></p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl&lt;'x, T&gt; <a class='trait' href='https://doc.rust-lang.org/nightly/core/ops/trait.Deref.html' title='trait core::ops::Deref'>Deref</a> for <a class='struct' href='../imprint/struct.Val.html' title='struct imprint::Val'>Val</a>&lt;'x, T&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/imprint/lib.rs.html#175-180' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='associatedtype.Target' class='type'><span id='Target.t' class='invisible'><code>type <a href='https://doc.rust-lang.org/nightly/core/ops/trait.Deref.html#associatedtype.Target' class='type'>Target</a> = T</code></span></h4>
+<div class='docblock'><p>The resulting type after dereferencing</p>
+</div><h4 id='method.deref' class='method'><span id='deref.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/ops/trait.Deref.html#tymethod.deref' class='fnname'>deref</a>(&amp;self) -&gt; &amp;T</code></span></h4>
+<div class='docblock'><p>The method called to dereference a value</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl&lt;'x, T&gt; <a class='trait' href='../imprint/trait.Value.html' title='trait imprint::Value'>Value</a> for <a class='struct' href='../imprint/struct.Val.html' title='struct imprint::Val'>Val</a>&lt;'x, T&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/imprint/lib.rs.html#182-187' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='associatedtype.Value' class='type'><span id='Value.t' class='invisible'><code>type <a href='../imprint/trait.Value.html#associatedtype.Value' class='type'>Value</a> = T</code></span></h4>
+<div class='docblock'><p>The demoted type.</p>
+</div><h4 id='method.value' class='method'><span id='value.v' class='invisible'><code>fn <a href='../imprint/trait.Value.html#tymethod.value' class='fnname'>value</a>(self) -&gt; Self::<a class='trait' href='../imprint/trait.Value.html' title='trait imprint::Value'>Value</a></code></span></h4>
+<div class='docblock'><p>Extracts the value.</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl&lt;'a, 'x, T&gt; <a class='trait' href='../imprint/trait.Value.html' title='trait imprint::Value'>Value</a> for &amp;'a <a class='struct' href='../imprint/struct.Val.html' title='struct imprint::Val'>Val</a>&lt;'x, T&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/imprint/lib.rs.html#189-194' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='associatedtype.Value-1' class='type'><span id='Value.t-1' class='invisible'><code>type <a href='../imprint/trait.Value.html#associatedtype.Value' class='type'>Value</a> = &amp;'a T</code></span></h4>
+<div class='docblock'><p>The demoted type.</p>
+</div><h4 id='method.value-1' class='method'><span id='value.v-1' class='invisible'><code>fn <a href='../imprint/trait.Value.html#tymethod.value' class='fnname'>value</a>(self) -&gt; Self::<a class='trait' href='../imprint/trait.Value.html' title='trait imprint::Value'>Value</a></code></span></h4>
+<div class='docblock'><p>Extracts the value.</p>
+</div></div></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../";
+        window.currentCrate = "imprint";
+    </script>
+    <script src="../jquery.js"></script>
+    <script src="../main.js"></script>
+    <script defer src="../search-index.js"></script>
+</body>
+</html>

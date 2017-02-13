@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `Exists` struct in crate `imprint`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, Exists">
+
+    <title>imprint::Exists - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../normalize.css">
+    <link rel="stylesheet" type="text/css" href="../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'><a href='index.html'>imprint</a></p><script>window.sidebarCurrent = {name: 'Exists', ty: 'struct', relpath: ''};</script><script defer src="sidebar-items.js"></script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content struct">
+<h1 class='fqn'><span class='in-band'>Struct <a href='index.html'>imprint</a>::<wbr><a class='struct' href=''>Exists</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a class='srclink' href='../src/imprint/lib.rs.html#466' title='goto source code'>[src]</a></span></h1>
+<pre class='rust struct'>pub struct Exists&lt;F:&nbsp;for&lt;'a&gt; <a class='trait' href='../imprint/trait.TyFnL.html' title='trait imprint::TyFnL'>TyFnL</a>&lt;'a&gt;&gt;(_);</pre><div class='docblock'><p>An object with an existentially quantified lifetime.</p>
+
+<p>The main purpose of this type is to allow fictitious lifetimes to be
+&quot;forgotten&quot; safely.  Even after forgetting the lifetime, it is still
+possible to do useful operations on the object within.  This can be
+especially useful in conjunction with <code>Val</code>.</p>
+
+<p>Known bugs:</p>
+
+<ul>
+<li>Use of <code>Exists::with</code> can cause internal compiler errors.  See
+<a href="https://github.com/rust-lang/rust/issues/39779">rust#39779</a>.</li>
+<li>The trait (<code>Clone</code>, <code>Copy</code>, <code>Debug</code>, etc.) implementations of <code>Exists</code>
+are unusable as the compiler is unable to infer <code>for&lt;&#39;a&gt; &lt;F as TyFnL&lt;&#39;a&gt;&gt;::Output: SomeTrait</code>.  Seems related to
+<a href="https://github.com/rust-lang/rust/issues/30472">rust#30472</a>.</li>
+</ul>
+
+<h2 id='example' class='section-header'><a href='#example'>Example</a></h2>
+<p>This example is for demonstration only: since <code>exists&lt;&#39;x&gt; Val&lt;&#39;x, T&gt;</code> is
+completely isomorphic to <code>T</code>, there&#39;s no point in ever using <code>ExistsVal</code>!</p>
+
+<pre class='rust rust-example-rendered'>
+<span class='kw'>use</span> <span class='ident'>imprint</span>::{<span class='ident'>Exists</span>, <span class='ident'>IdF</span>, <span class='ident'>Val</span>, <span class='ident'>Value</span>, <span class='ident'>ValF</span>, <span class='ident'>imprint</span>};
+
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>ExistsVal</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span>(<span class='ident'>Exists</span><span class='op'>&lt;</span><span class='ident'>ValF</span><span class='op'>&lt;</span><span class='ident'>IdF</span>, <span class='ident'>T</span><span class='op'>&gt;&gt;</span>);
+
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>ExistsVal</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
+    <span class='comment'>// existential constructor (introduction rule)</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span><span class='op'>&lt;</span><span class='lifetime'>&#39;x</span><span class='op'>&gt;</span>(<span class='ident'>value</span>: <span class='ident'>Val</span><span class='op'>&lt;</span><span class='lifetime'>&#39;x</span>, <span class='ident'>T</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span> {
+        <span class='ident'>ExistsVal</span>(<span class='ident'>Exists</span>::<span class='ident'>new</span>(<span class='ident'>value</span>))
+    }
+
+    <span class='comment'>// existential projector (elimination rule)</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>with</span><span class='op'>&lt;</span><span class='ident'>F</span>, <span class='ident'>R</span><span class='op'>&gt;</span>(<span class='self'>self</span>, <span class='ident'>callback</span>: <span class='ident'>F</span>) <span class='op'>-&gt;</span> <span class='ident'>R</span>
+        <span class='kw'>where</span> <span class='ident'>F</span>: <span class='kw'>for</span><span class='op'>&lt;</span><span class='lifetime'>&#39;x</span><span class='op'>&gt;</span> <span class='ident'>FnOnce</span>(<span class='ident'>Val</span><span class='op'>&lt;</span><span class='lifetime'>&#39;x</span>, <span class='ident'>T</span><span class='op'>&gt;</span>) <span class='op'>-&gt;</span> <span class='ident'>R</span> {
+        <span class='self'>self</span>.<span class='number'>0</span>.<span class='ident'>with</span>(<span class='op'>|</span><span class='ident'>v</span><span class='op'>|</span> <span class='ident'>callback</span>(<span class='ident'>v</span>))
+    }
+
+    <span class='comment'>// ExistsVal&lt;T&gt; -&gt; T</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>value</span><span class='op'>&lt;</span><span class='lifetime'>&#39;x</span><span class='op'>&gt;</span>(<span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>T</span> {
+        <span class='self'>self</span>.<span class='ident'>with</span>(<span class='op'>|</span><span class='ident'>v</span><span class='op'>|</span> <span class='ident'>v</span>.<span class='ident'>value</span>())
+    }
+}
+
+<span class='comment'>// T -&gt; ExistsVal&lt;T&gt;</span>
+<span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> <span class='ident'>From</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='ident'>ExistsVal</span><span class='op'>&lt;</span><span class='ident'>T</span><span class='op'>&gt;</span> {
+    <span class='kw'>fn</span> <span class='ident'>from</span>(<span class='ident'>t</span>: <span class='ident'>T</span>) <span class='op'>-&gt;</span> <span class='self'>Self</span> {
+        <span class='ident'>imprint</span>(<span class='ident'>t</span>, <span class='op'>|</span><span class='ident'>v</span><span class='op'>|</span> <span class='ident'>ExistsVal</span>::<span class='ident'>new</span>(<span class='ident'>v</span>))
+    }
+}</pre>
+</div><h2 id='methods'>Methods</h2><h3 class='impl'><span class='in-band'><code>impl&lt;F:&nbsp;for&lt;'a&gt; <a class='trait' href='../imprint/trait.TyFnL.html' title='trait imprint::TyFnL'>TyFnL</a>&lt;'a&gt;&gt; <a class='struct' href='../imprint/struct.Exists.html' title='struct imprint::Exists'>Exists</a>&lt;F&gt;</code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/imprint/lib.rs.html#468-499' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.new' class='method'><span id='new.v' class='invisible'><code>fn <a href='#method.new' class='fnname'>new</a>&lt;'a&gt;(value: F::<a class='trait' href='../imprint/trait.TyFnL.html' title='trait imprint::TyFnL'>Output</a>) -&gt; <a class='struct' href='../imprint/struct.Exists.html' title='struct imprint::Exists'>Exists</a>&lt;F&gt;</code></span></h4>
+<div class='docblock'><p>Creates an <code>Exists</code> object.</p>
+</div><h4 id='method.with' class='method'><span id='with.v' class='invisible'><code>fn <a href='#method.with' class='fnname'>with</a>&lt;U, R&gt;(self, callback: U) -&gt; R <span class='where fmt-newline'>where U: for&lt;'a&gt; <a class='trait' href='https://doc.rust-lang.org/nightly/core/ops/trait.FnOnce.html' title='trait core::ops::FnOnce'>FnOnce</a>(F::<a class='trait' href='../imprint/trait.TyFnL.html' title='trait imprint::TyFnL'>Output</a>) -&gt; R</span></code></span></h4>
+<h4 id='method.with_ref' class='method'><span id='with_ref.v' class='invisible'><code>fn <a href='#method.with_ref' class='fnname'>with_ref</a>&lt;'b, U, R&gt;(&amp;'b self, callback: U) -&gt; R <span class='where fmt-newline'>where U: for&lt;'a&gt; <a class='trait' href='https://doc.rust-lang.org/nightly/core/ops/trait.FnOnce.html' title='trait core::ops::FnOnce'>FnOnce</a>(&amp;'b F::<a class='trait' href='../imprint/trait.TyFnL.html' title='trait imprint::TyFnL'>Output</a>) -&gt; R</span></code></span></h4>
+<h4 id='method.with_ref_mut' class='method'><span id='with_ref_mut.v' class='invisible'><code>fn <a href='#method.with_ref_mut' class='fnname'>with_ref_mut</a>&lt;'b, U, R&gt;(&amp;'b mut self, callback: U) -&gt; R <span class='where fmt-newline'>where U: for&lt;'a&gt; <a class='trait' href='https://doc.rust-lang.org/nightly/core/ops/trait.FnOnce.html' title='trait core::ops::FnOnce'>FnOnce</a>(&amp;'b mut F::<a class='trait' href='../imprint/trait.TyFnL.html' title='trait imprint::TyFnL'>Output</a>) -&gt; R</span></code></span></h4>
+</div><h2 id='implementations'>Trait Implementations</h2><h3 class='impl'><span class='in-band'><code>impl&lt;F:&nbsp;for&lt;'a&gt; <a class='trait' href='../imprint/trait.TyFnL.html' title='trait imprint::TyFnL'>TyFnL</a>&lt;'a&gt;&gt; <a class='trait' href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html' title='trait core::clone::Clone'>Clone</a> for <a class='struct' href='../imprint/struct.Exists.html' title='struct imprint::Exists'>Exists</a>&lt;F&gt; <span class='where fmt-newline'>where F::<a class='trait' href='../imprint/trait.TyFnL.html' title='trait imprint::TyFnL'>Output</a>: <a class='trait' href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html' title='trait core::clone::Clone'>Clone</a></span></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/imprint/lib.rs.html#501-506' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.clone' class='method'><span id='clone.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#tymethod.clone' class='fnname'>clone</a>(&amp;self) -&gt; Self</code></span></h4>
+<div class='docblock'><p>Returns a copy of the value. <a href="https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#tymethod.clone">Read more</a></p>
+</div><h4 id='method.clone_from' class='method'><span id='clone_from.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone_from' class='fnname'>clone_from</a>(&amp;mut self, source: &amp;Self)</code><div class='since' title='Stable since Rust version 1.0.0'>1.0.0</div></span></h4>
+<div class='docblock'><p>Performs copy-assignment from <code>source</code>. <a href="https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone_from">Read more</a></p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl&lt;F:&nbsp;for&lt;'a&gt; <a class='trait' href='../imprint/trait.TyFnL.html' title='trait imprint::TyFnL'>TyFnL</a>&lt;'a&gt;&gt; <a class='trait' href='https://doc.rust-lang.org/nightly/core/marker/trait.Copy.html' title='trait core::marker::Copy'>Copy</a> for <a class='struct' href='../imprint/struct.Exists.html' title='struct imprint::Exists'>Exists</a>&lt;F&gt; <span class='where fmt-newline'>where F::<a class='trait' href='../imprint/trait.TyFnL.html' title='trait imprint::TyFnL'>Output</a>: <a class='trait' href='https://doc.rust-lang.org/nightly/core/marker/trait.Copy.html' title='trait core::marker::Copy'>Copy</a></span></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/imprint/lib.rs.html#508-509' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'></div><h3 class='impl'><span class='in-band'><code>impl&lt;F:&nbsp;for&lt;'a&gt; <a class='trait' href='../imprint/trait.TyFnL.html' title='trait imprint::TyFnL'>TyFnL</a>&lt;'a&gt;&gt; <a class='trait' href='https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html' title='trait core::fmt::Debug'>Debug</a> for <a class='struct' href='../imprint/struct.Exists.html' title='struct imprint::Exists'>Exists</a>&lt;F&gt; <span class='where fmt-newline'>where F::<a class='trait' href='../imprint/trait.TyFnL.html' title='trait imprint::TyFnL'>Output</a>: <a class='trait' href='https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html' title='trait core::fmt::Debug'>Debug</a></span></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/imprint/lib.rs.html#511-518' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.fmt' class='method'><span id='fmt.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html#tymethod.fmt' class='fnname'>fmt</a>(&amp;self, f: &amp;mut <a class='struct' href='https://doc.rust-lang.org/nightly/core/fmt/struct.Formatter.html' title='struct core::fmt::Formatter'>Formatter</a>) -&gt; <a class='type' href='https://doc.rust-lang.org/nightly/core/fmt/type.Result.html' title='type core::fmt::Result'>Result</a></code></span></h4>
+<div class='docblock'><p>Formats the value using the given formatter.</p>
+</div></div></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../";
+        window.currentCrate = "imprint";
+    </script>
+    <script src="../jquery.js"></script>
+    <script src="../main.js"></script>
+    <script defer src="../search-index.js"></script>
+</body>
+</html>

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `imprint` crate.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, imprint">
+
+    <title>imprint - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../normalize.css">
+    <link rel="stylesheet" type="text/css" href="../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'></p><script>window.sidebarCurrent = {name: 'imprint', ty: 'mod', relpath: '../'};</script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content mod">
+<h1 class='fqn'><span class='in-band'>Crate <a class='mod' href=''>imprint</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a class='srclink' href='../src/imprint/lib.rs.html#1-547' title='goto source code'>[src]</a></span></h1>
+<div class='docblock'><p>Provides the ability to imprint values at the type level, enabling
+compile-time validation of values that only exist at run time.</p>
+
+<p><em>Heavily inspired by Richard Eisenberg&#39;s <a href="https://hackage.haskell.org/package/singletons"><code>singletons</code></a>
+library, Edward Kmett&#39;s <a href="https://hackage.haskell.org/package/reflection"><code>reflection</code></a> and <a href="https://hackage.haskell.org/package/eq"><code>eq</code></a>
+libraries, as well as Gankro&#39;s <a href="https://reddit.com/r/rust/comments/3oo0oe">sound unchecked indexing</a>
+approach.</em></p>
+</div><h2 id='modules' class='section-header'><a href="#modules">Modules</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class='mod' href='arith/index.html'
+                                  title='mod imprint::arith'>arith</a></td>
+                           <td class='docblock-short'>
+                                <p>As with <code>Val</code>, the soundness and usefulness of these traits rely on the
+type contained.  In particular, in order to enable sensible use of these
+relations:</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='mod' href='ix/index.html'
+                                  title='mod imprint::ix'>ix</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr></table><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.Exists.html'
+                                  title='struct imprint::Exists'>Exists</a></td>
+                           <td class='docblock-short'>
+                                <p>An object with an existentially quantified lifetime.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.IdF.html'
+                                  title='struct imprint::IdF'>IdF</a></td>
+                           <td class='docblock-short'>
+                                <p>Identity function for types.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.TyEq.html'
+                                  title='struct imprint::TyEq'>TyEq</a></td>
+                           <td class='docblock-short'>
+                                <p>Propositional equality between types.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.Val.html'
+                                  title='struct imprint::Val'>Val</a></td>
+                           <td class='docblock-short'>
+                                <p>A value imprinted at the type level.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='struct' href='struct.ValF.html'
+                                  title='struct imprint::ValF'>ValF</a></td>
+                           <td class='docblock-short'>
+                                <p>Allows <code>Val</code> to be parameterized by its lifetime parameter.
+Here, <code>F</code> can be any arbitrary type function.</p>
+                           </td>
+                       </tr></table><h2 id='traits' class='section-header'><a href="#traits">Traits</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class='trait' href='trait.TyFn.html'
+                                  title='trait imprint::TyFn'>TyFn</a></td>
+                           <td class='docblock-short'>
+                                <p>Used to define type-level functions.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='trait' href='trait.TyFnL.html'
+                                  title='trait imprint::TyFnL'>TyFnL</a></td>
+                           <td class='docblock-short'>
+                                <p>Used to define type-level functions with existential parameters, intended
+for use with <code>Exists</code>.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='trait' href='trait.Value.html'
+                                  title='trait imprint::Value'>Value</a></td>
+                           <td class='docblock-short'>
+                                <p>Any type that implements <code>Value</code> represents a promoted value.</p>
+                           </td>
+                       </tr></table><h2 id='functions' class='section-header'><a href="#functions">Functions</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class='fn' href='fn.imprint.html'
+                                  title='fn imprint::imprint'>imprint</a></td>
+                           <td class='docblock-short'>
+                                <p>Imprint the type of an object with its own value.</p>
+                           </td>
+                       </tr></table><h2 id='types' class='section-header'><a href="#types">Type Definitions</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class='type' href='type.PhantomInvariantLifetime.html'
+                                  title='type imprint::PhantomInvariantLifetime'>PhantomInvariantLifetime</a></td>
+                           <td class='docblock-short'>
+                                <p>Like <code>PhantomData</code> but ensures that <code>&#39;a</code> is always invariant.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='type' href='type.PhantomInvariantType.html'
+                                  title='type imprint::PhantomInvariantType'>PhantomInvariantType</a></td>
+                           <td class='docblock-short'>
+                                <p>Like <code>PhantomData</code> but ensures that <code>T</code> is always invariant.</p>
+                           </td>
+                       </tr></table></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../";
+        window.currentCrate = "imprint";
+    </script>
+    <script src="../jquery.js"></script>
+    <script src="../main.js"></script>
+    <script defer src="../search-index.js"></script>
+</body>
+</html>

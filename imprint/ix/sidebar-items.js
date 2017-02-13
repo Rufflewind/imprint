@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["BoxedSl","An owned variant of `Sl`."],["Ix","Represents a value less than `'l`."],["IxRange",""],["MutSl","A mutable variant of `Sl`."],["Sl","An immutable slice."]]});
