@@ -19,6 +19,8 @@ Other future improvements:
   - Store proofs within Ix using Exists, whenever the ICEs get fixed.
   - Could use a more general "Subtype" proof for downcasts
     (used for e.g. Ix::check)
+  - Add support for *compile-time* integers in `typenum` (note: for
+    compile-time ones you sometimes want to store them "on the stack")
 
 ~~~rust
 [&I] -> &T
