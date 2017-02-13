@@ -301,7 +301,7 @@ impl<T: ?Sized, U: ?Sized> fmt::Debug for TyEq<T, U> {
     }
 }
 
-/// Used to implement type-level functions.
+/// Used to define type-level functions.
 ///
 /// The parameter `F` identifies the type function and can be whatever you
 /// want.  Note that `F` is the *main* parameter rather than an auxiliary
@@ -334,6 +334,87 @@ pub struct Identity;
 
 impl<T: ?Sized> TyFn<T> for Identity {
     type Output = T;
+}
+
+/// Used to define type-level functions with existential parameters, intended
+/// for use with `Exists`.
+///
+/// Note: in order to use `Exists` *safely*, we require parametricity in `'a`
+/// for all implementations of `TyFnL`.  In principle, we should mark this
+/// trait as unsafe but I don't think it's yet possible to violate
+/// parametricity in Rust without breaking the `for<'a> TyFnL<'a>` constraint.
+pub trait TyFnL<'a> { type Output; }
+
+/// An object with an existentially quantified lifetime.
+///
+/// The main purpose of this type is to allow lifetimes to be "forgotten"
+/// safely.  Even after forgetting the lifetime, it is still possible to do
+/// useful operations on the object within.  This can be especially useful in
+/// conjunction with `Val`.
+///
+/// ## Example
+///
+/// This example is for demonstration only: since `exists<'x> Val<'x, T>` is
+/// completely isomorphic to `T`, there's no point in ever using `ExistsVal`!
+///
+/// ```
+/// use imprint::{Exists, IntoInner, TyFnL, Val, imprint};
+///
+/// // used to label the type function for ExistsVal
+/// // it is not otherwise used for anything
+/// struct ValF<T>(T);
+/// impl<'a, T> TyFnL<'a> for ValF<T> { type Output = Val<'a, T>; }
+///
+/// pub struct ExistsVal<T>(Exists<ValF<T>>);
+///
+/// impl<T> ExistsVal<T> {
+///     // existential constructor (introduction rule)
+///     pub fn new<'x>(value: Val<'x, T>) -> Self {
+///         ExistsVal(Exists::new(value))
+///     }
+///
+///     // existential projector (elimination rule)
+///     pub fn with<F, R>(self, callback: F) -> R
+///         where F: for<'x> FnOnce(Val<'x, T>) -> R {
+///         self.0.with(|v| callback(v))
+///     }
+///
+///     // ExistsVal<T> -> T
+///     pub fn into_inner<'x>(self) -> T {
+///         self.with(|v| v.into_inner())
+///     }
+/// }
+///
+/// // T -> ExistsVal<T>
+/// impl<T> From<T> for ExistsVal<T> {
+///     fn from(t: T) -> Self {
+///         imprint(t, |v| ExistsVal::new(v))
+///     }
+/// }
+/// ```
+pub struct Exists<F: for<'a> TyFnL<'a>>(<F as TyFnL<'static>>::Output);
+
+impl<F: for<'a> TyFnL<'a>> Exists<F> {
+    /// Creates an `Exists` object.
+    pub fn new<'a>(value: <F as TyFnL<'a>>::Output) -> Exists<F> {
+        use std::{mem, ptr};
+        // can't transmute here because the compiler has a very hard time with
+        // Sized + lifetime constraints when associated types are involved
+        let result = unsafe {
+            // not sure if there's a less convoluted way to do this ...
+            ptr::read(&value
+                      as *const <F as TyFnL<'a>>::Output
+                      as *const ()
+                      as *const <F as TyFnL<'static>>::Output)
+        };
+        mem::forget(value);
+        Exists(result)
+    }
+
+    pub fn with<U, R>(self, callback: U) -> R
+        where U: for<'a> FnOnce(<F as TyFnL<'a>>::Output) -> R {
+        callback(self.0)
+    }
 }
 
 #[cfg(test)]
