@@ -1,8 +1,11 @@
 # `imprint 🐾`
 
+[![Crates.io](https://img.shields.io/crates/v/imprint.svg)](https://crates.io/crates/imprint)
+
 **Quick links:** [Documentation](https://docs.rs/imprint)
 
 A highly experimental Rust library for imprinting values at the type level.
+
 
 ## Usage
 
@@ -10,7 +13,7 @@ Add this to your `Cargo.toml`:
 
 ~~~toml
 [dependencies]
-imprint = "^0.1.1"
+imprint = "^0.2.0"
 ~~~
 
 Next, prepend this to the root module of your crate:
