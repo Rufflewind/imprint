@@ -27,6 +27,12 @@ pub type PhantomInvariantData<T> = PhantomData<*mut T>;
 /// Like `PhantomData` but ensures that `'a` is always invariant.
 pub type PhantomInvariantLifetime<'a> = PhantomData<Cell<&'a mut ()>>;
 
+/// Allows the inner value to be extracted from a wrapped value.
+pub trait IntoInner: Deref {
+    /// Extracts the inner value.
+    fn into_inner(self) -> Self::Target;
+}
+
 /// Imprint the type of an object with its own value.
 ///
 /// A value of type `Self` is imprinted as `Val<'x, Self>`, where `'x` is
@@ -57,7 +63,7 @@ pub type PhantomInvariantLifetime<'a> = PhantomData<Cell<&'a mut ()>>;
 /// ```
 pub fn imprint<F, R, T>(value: T, callback: F) -> R
     where F: for<'x> FnOnce(Val<'x, T>) -> R {
-    callback(Val { tag: PhantomData, inner: value })
+    callback(unsafe { Val::known(value) })
 }
 
 /// A value imprinted at the type level.
@@ -101,17 +107,9 @@ pub struct Val<'x, T> {
     inner: T,
 }
 
-/// Allows the inner value to be extracted from a wrapped value.
-pub trait IntoInner {
-    type Inner;
-    /// Extracts the inner value.
-    fn into_inner(self) -> Self::Inner;
-}
-
-impl<'x, T> IntoInner for Val<'x, T> {
-    type Inner = T;
-    fn into_inner(self) -> Self::Inner {
-        self.inner
+impl<'x, T> Val<'x, T> {
+    pub unsafe fn known(value: T) -> Val<'x, T> {
+        Val { tag: PhantomData, inner: value }
     }
 }
 
@@ -124,10 +122,10 @@ impl<'x, T: PartialEq> Val<'x, T> {
     }
 }
 
-impl<'x, T: Copy + fmt::Debug> fmt::Debug for Val<'x, T> {
+impl<'x, T: fmt::Debug> fmt::Debug for Val<'x, T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str("Val(")?;
-        self.fmt(f)?;
+        (*self).fmt(f)?;
         f.write_str(")")
     }
 }
@@ -158,6 +156,12 @@ impl<'x, T> Deref for Val<'x, T> {
     }
 }
 
+impl<'x, T> IntoInner for Val<'x, T> {
+    fn into_inner(self) -> Self::Target {
+        self.inner
+    }
+}
+
 /// Propositional equality between types.
 ///
 /// If two types `A` and `B` are equal, then it is safe to transmute between
@@ -171,11 +175,13 @@ impl<'x, T> Deref for Val<'x, T> {
 /// by transmutation:
 ///
 /// ```
+/// # #[allow(unused)] {
 /// # use imprint::{TyEq, PhantomInvariantLifetime};
 /// # struct Foo<'a>(PhantomInvariantLifetime<'a>);
 /// # unsafe fn conjure<'a, 'b>() -> TyEq<Foo<'a>, Foo<'b>> {
 /// std::mem::transmute::<TyEq<Foo<'a>, Foo<'a>>,
 ///                       TyEq<Foo<'a>, Foo<'b>>>(TyEq::refl())
+/// # }
 /// # }
 /// ```
 ///
@@ -233,7 +239,9 @@ impl<T: ?Sized, U: ?Sized> TyEq<T, U> {
     /// ## Example
     ///
     /// ```
-    /// # use imprint::{TyEq, TyFn};
+    /// # #[allow(unused)] {
+    /// use imprint::{TyEq, TyFn};
+    ///
     /// // first define a type-level function using TyFn
     /// struct VecF;
     /// impl<T> TyFn<T> for VecF { type Output = Vec<T>; }
@@ -243,6 +251,7 @@ impl<T: ?Sized, U: ?Sized> TyEq<T, U> {
     /// fn convert_vec<T, U>(eq: TyEq<T, U>, vec: Vec<T>) -> Vec<U> {
     ///     eq.apply::<VecF>(vec)
     /// }
+    /// # }
     /// ```
     pub fn apply<F: ?Sized>(self, value: <F as TyFn<T>>::Output)
                             -> <F as TyFn<U>>::Output
@@ -311,10 +320,13 @@ impl<T: ?Sized, U: ?Sized> fmt::Debug for TyEq<T, U> {
 /// ## Example
 ///
 /// ```
-/// # use imprint::TyFn;
+/// # #[allow(unused)] {
+/// use imprint::TyFn;
+///
 /// // define a type function that converts T into Box<T>
 /// struct BoxTyFn;
 /// impl<T> TyFn<T> for BoxTyFn { type Output = Box<T>; }
+/// # }
 /// ```
 pub trait TyFn<F: ?Sized> {
     /// The result of the type function.
@@ -376,6 +388,7 @@ unsafe impl<'a, T> TyFnL<'a> for ValF<T> { type Output = Val<'a, T>; }
 /// completely isomorphic to `T`, there's no point in ever using `ExistsVal`!
 ///
 /// ```
+/// # #[allow(unused)] {
 /// use imprint::{Exists, IntoInner, Val, ValF, imprint};
 ///
 /// pub struct ExistsVal<T>(Exists<ValF<T>>);
@@ -404,6 +417,7 @@ unsafe impl<'a, T> TyFnL<'a> for ValF<T> { type Output = Val<'a, T>; }
 ///         imprint(t, |v| ExistsVal::new(v))
 ///     }
 /// }
+/// # }
 /// ```
 pub struct Exists<F: for<'a> TyFnL<'a>>(<F as TyFnL<'static>>::Output);
 
