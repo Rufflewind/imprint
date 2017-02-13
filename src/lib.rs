@@ -281,9 +281,9 @@ impl<T, U> TyEq<T, U> {
     /// Cast from `T` to `U`.
     ///
     /// Equivalent to <code>.<a href="#method.apply">apply</a>::&lt;<a
-    /// href="struct.Identity.html">Identity</a>&gt;</code>.
+    /// href="struct.IdF.html">IdF</a>&gt;</code>.
     pub fn cast(self, value: T) -> U {
-        self.apply::<Identity>(value)
+        self.apply::<IdF>(value)
     }
 }
 
@@ -327,30 +327,48 @@ pub trait TyFn<F: ?Sized> {
 ///
 /// ```
 /// # /*
-/// <Identity as TyFn<T>>::Output == T
+/// <IdF as TyFn<T>>::Output == T
 /// # */
 /// ```
-pub struct Identity;
+pub struct IdF(());
 
-impl<T: ?Sized> TyFn<T> for Identity {
+impl<T: ?Sized> TyFn<T> for IdF {
     type Output = T;
 }
 
 /// Used to define type-level functions with existential parameters, intended
 /// for use with `Exists`.
 ///
-/// Note: in order to use `Exists` *safely*, we require parametricity in `'a`
-/// for all implementations of `TyFnL`.  In principle, we should mark this
-/// trait as unsafe but I don't think it's yet possible to violate
-/// parametricity in Rust without breaking the `for<'a> TyFnL<'a>` constraint.
-pub trait TyFnL<'a> { type Output; }
+/// In order to use `Exists` *safely*, we require parametricity in `'a` for
+/// all implementations of `TyFnL`.  However, I don't think it's yet possible
+/// to violate parametricity in Rust without breaking the `for<'a> TyFnL<'a>`
+/// constraint.
+///
+/// However, what is more important is that `'a` must be a *fictitious*
+/// lifetime parameter!  Otherwise, `Exists` could be used to smuggle
+/// references to temporary objects out of their scope.
+pub unsafe trait TyFnL<'a> { type Output; }
+
+/// Allows `Val` to be parameterized by its lifetime parameter.
+pub struct ValF<T>(PhantomInvariantData<T>);
+
+unsafe impl<'a, T> TyFnL<'a> for ValF<T> { type Output = Val<'a, T>; }
 
 /// An object with an existentially quantified lifetime.
 ///
-/// The main purpose of this type is to allow lifetimes to be "forgotten"
-/// safely.  Even after forgetting the lifetime, it is still possible to do
-/// useful operations on the object within.  This can be especially useful in
-/// conjunction with `Val`.
+/// The main purpose of this type is to allow fictitious lifetimes to be
+/// "forgotten" safely.  Even after forgetting the lifetime, it is still
+/// possible to do useful operations on the object within.  This can be
+/// especially useful in conjunction with `Val`.
+///
+/// Known bugs:
+///
+///   - Use of `Exists::with` can cause internal compiler errors.  See
+///     [rust#39779](https://github.com/rust-lang/rust/issues/39779).
+///   - The trait (`Clone`, `Copy`, `Debug`, etc.) implementations of `Exists`
+///     are unusable as the compiler is unable to infer `for<'a> <F as
+///     TyFnL<'a>>::Output: SomeTrait`.  Seems related to
+///     [rust#30472](https://github.com/rust-lang/rust/issues/30472).
 ///
 /// ## Example
 ///
@@ -358,12 +376,7 @@ pub trait TyFnL<'a> { type Output; }
 /// completely isomorphic to `T`, there's no point in ever using `ExistsVal`!
 ///
 /// ```
-/// use imprint::{Exists, IntoInner, TyFnL, Val, imprint};
-///
-/// // used to label the type function for ExistsVal
-/// // it is not otherwise used for anything
-/// struct ValF<T>(T);
-/// impl<'a, T> TyFnL<'a> for ValF<T> { type Output = Val<'a, T>; }
+/// use imprint::{Exists, IntoInner, Val, ValF, imprint};
 ///
 /// pub struct ExistsVal<T>(Exists<ValF<T>>);
 ///
@@ -415,6 +428,35 @@ impl<F: for<'a> TyFnL<'a>> Exists<F> {
         where U: for<'a> FnOnce(<F as TyFnL<'a>>::Output) -> R {
         callback(self.0)
     }
+
+    pub fn with_ref<'b, U, R>(&'b self, callback: U) -> R
+        where U: for<'a> FnOnce(&'b <F as TyFnL<'a>>::Output) -> R {
+        callback(&self.0)
+    }
+
+    pub fn with_ref_mut<'b, U, R>(&'b mut self, callback: U) -> R
+        where U: for<'a> FnOnce(&'b mut <F as TyFnL<'a>>::Output) -> R {
+        callback(&mut self.0)
+    }
+}
+
+impl<F: for<'a> TyFnL<'a>> Clone for Exists<F>
+    where for<'a> <F as TyFnL<'a>>::Output: Clone {
+    fn clone(&self) -> Self {
+        self.with_ref(|x| Exists::new(x.clone()))
+    }
+}
+
+impl<F: for<'a> TyFnL<'a>> Copy for Exists<F>
+    where for<'a> <F as TyFnL<'a>>::Output: Copy { }
+
+impl<F: for<'a> TyFnL<'a>> fmt::Debug for Exists<F>
+    where for<'a> <F as TyFnL<'a>>::Output: fmt::Debug {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str("Exists(")?;
+        self.with_ref(|x| x.fmt(f))?;
+        f.write_str(")")
+    }
 }
 
 #[cfg(test)]
@@ -435,5 +477,13 @@ mod tests {
                 assert!(m.eq(&z).is_none());
             })
         })
+    }
+
+    #[test]
+    #[allow(unused)]
+    fn exists() {
+        let x = imprint(0, |x| Exists::<ValF<i64>>::new(x));
+        // TODO: uncomment the line below when rust#39779 gets fixed
+        // let y = x.with_ref(|r| Exists::<ValF<i64>>::new(Clone::clone(r)));
     }
 }

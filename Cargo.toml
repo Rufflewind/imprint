@@ -1,6 +1,6 @@
 [package]
 name = "imprint"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["Phil Ruffwind <rf@rufflewind.com>"]
 description = "Type-level manipulation of values."
 documentation = "https://docs.rs/imprint"
