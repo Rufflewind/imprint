@@ -27,10 +27,13 @@ pub type PhantomInvariantData<T> = PhantomData<*mut T>;
 /// Like `PhantomData` but ensures that `'a` is always invariant.
 pub type PhantomInvariantLifetime<'a> = PhantomData<Cell<&'a mut ()>>;
 
-/// Allows the inner value to be extracted from a wrapped value.
-pub trait IntoInner: Deref {
-    /// Extracts the inner value.
-    fn into_inner(self) -> Self::Target;
+/// Any type that implements `Value` represents a promoted value.
+pub trait Value {
+    /// The demoted type.
+    type Value;
+
+    /// Extracts the value.
+    fn value(self) -> Self::Value;
 }
 
 /// Imprint the type of an object with its own value.
@@ -55,10 +58,10 @@ pub trait IntoInner: Deref {
 /// ## Example
 ///
 /// ```
-/// use imprint::{IntoInner, Val, imprint};
+/// use imprint::{Val, Value, imprint};
 ///
 /// imprint(42, |n: Val<i64>| {
-///     assert_eq!(n.into_inner(), 42);
+///     assert_eq!(n.value(), 42);
 /// })
 /// ```
 pub fn imprint<F, R, T>(value: T, callback: F) -> R
@@ -77,7 +80,7 @@ pub fn imprint<F, R, T>(value: T, callback: F) -> R
 /// `Default::default()`.
 ///
 /// The underlying value can be obtained either by dererefencing or by calling
-/// [`.into_inner()`](trait.IntoInner.html#tymethod.into_inner).
+/// [`.value()`](trait.Value.html#tymethod.value).
 ///
 /// ## Properties
 ///
@@ -108,8 +111,18 @@ pub struct Val<'x, T> {
 }
 
 impl<'x, T> Val<'x, T> {
-    pub unsafe fn known(value: T) -> Val<'x, T> {
+    pub fn as_val_ref<'a>(&'a self) -> Val<'x, &'a T> {
+        unsafe { Val::known((&self).value()) }
+    }
+
+    pub unsafe fn known(value: T) -> Self {
         Val { tag: PhantomData, inner: value }
+    }
+}
+
+impl<'a, 'x, T: Clone> Val<'x, &'a T> {
+    pub fn cloned(self) -> Val<'x, T> {
+        unsafe { Val::known(self.value().clone()) }
     }
 }
 
@@ -156,9 +169,17 @@ impl<'x, T> Deref for Val<'x, T> {
     }
 }
 
-impl<'x, T> IntoInner for Val<'x, T> {
-    fn into_inner(self) -> Self::Target {
+impl<'x, T> Value for Val<'x, T> {
+    type Value = T;
+    fn value(self) -> Self::Value {
         self.inner
+    }
+}
+
+impl<'a, 'x, T> Value for &'a Val<'x, T> {
+    type Value = &'a T;
+    fn value(self) -> Self::Value {
+        &self.inner
     }
 }
 
@@ -389,7 +410,7 @@ unsafe impl<'a, T> TyFnL<'a> for ValF<T> { type Output = Val<'a, T>; }
 ///
 /// ```
 /// # #[allow(unused)] {
-/// use imprint::{Exists, IntoInner, Val, ValF, imprint};
+/// use imprint::{Exists, Val, Value, ValF, imprint};
 ///
 /// pub struct ExistsVal<T>(Exists<ValF<T>>);
 ///
@@ -406,8 +427,8 @@ unsafe impl<'a, T> TyFnL<'a> for ValF<T> { type Output = Val<'a, T>; }
 ///     }
 ///
 ///     // ExistsVal<T> -> T
-///     pub fn into_inner<'x>(self) -> T {
-///         self.with(|v| v.into_inner())
+///     pub fn value<'x>(self) -> T {
+///         self.with(|v| v.value())
 ///     }
 /// }
 ///
@@ -480,14 +501,14 @@ mod tests {
     #[test]
     fn it_works() {
         imprint(42, |m| {
-            assert_eq!(m.into_inner(), 42);
+            assert_eq!(m.value(), 42);
             let n = imprint(42, |n| {
-                assert_eq!(n.into_inner(), 42);
+                assert_eq!(n.value(), 42);
                 m.eq(&n).unwrap().sym().cast(n)
             });
             assert_eq!(m, n);
             imprint(0, |z| {
-                assert_eq!(z.into_inner(), 0);
+                assert_eq!(z.value(), 0);
                 assert!(m.eq(&z).is_none());
             })
         })

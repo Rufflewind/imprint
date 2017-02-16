@@ -22,7 +22,7 @@ impl<'l> Ix<'l> {
     pub fn new<'i>(index: Val<'i, usize>,
                    _: Less<Val<'i, usize>, Val<'l, usize>>)
                    -> Self {
-        Ix { len: PhantomData, inner: index.into_inner() }
+        Ix { len: PhantomData, inner: index.value() }
     }
 
     pub fn try_new(index: usize, len: Val<'l, usize>) -> Option<Self> {
@@ -41,7 +41,10 @@ impl<'l> Ix<'l> {
 
     pub fn convert<'m>(self, le: LessEqual<Val<'l, usize>, Val<'m, usize>>)
                      -> Ix<'m> {
-        self.with(|i, lt| Ix::new(i, lt.compr(le)))
+        self.with(|i, self_lt| Ix::new(i, match le {
+            Ok(lt) => self_lt.comp(lt),
+            Err(eq) => self_lt.rsubst(eq),
+        }))
     }
 
     pub unsafe fn from_raw(index: usize) -> Self {
@@ -78,8 +81,9 @@ impl<'l> Deref for Ix<'l> {
     }
 }
 
-impl<'l> IntoInner for Ix<'l> {
-    fn into_inner(self) -> Self::Target {
+impl<'l> Value for Ix<'l> {
+    type Value = usize;
+    fn value(self) -> Self::Value {
         self.inner
     }
 }
@@ -92,7 +96,7 @@ pub struct BoxedSl<'l, T> {
 impl<'l, T> BoxedSl<'l, T> {
     pub fn from_boxed_slice(boxed_slice: Box<[T]>, len: Val<'l, usize>)
                             -> Result<Self, Box<[T]>> {
-        if boxed_slice.len() == len.into_inner() {
+        if boxed_slice.len() == len.value() {
             Ok(unsafe { Self::from_raw(boxed_slice) })
         } else {
             Err(boxed_slice)
@@ -101,7 +105,7 @@ impl<'l, T> BoxedSl<'l, T> {
 
     pub fn new(len: Val<'l, usize>, value: T) -> Self where T: Clone {
         unsafe { Self::from_raw(
-            vec![value; len.into_inner()].into_boxed_slice()
+            vec![value; len.value()].into_boxed_slice()
         ) }
     }
 
@@ -138,8 +142,9 @@ impl<'l, T> DerefMut for BoxedSl<'l, T> {
     }
 }
 
-impl<'l, T> IntoInner for BoxedSl<'l, T> {
-    fn into_inner(self) -> Self::Target {
+impl<'l, T> Value for BoxedSl<'l, T> {
+    type Value = Box<[T]>;
+    fn value(self) -> Self::Value {
         self.inner
     }
 }
@@ -156,14 +161,14 @@ impl<'l, T> Index<Ix<'l>> for BoxedSl<'l, T> {
     type Output = T;
     fn index(&self, index: Ix<'l>) -> &Self::Output {
         // can't use Sl impl because we aren't using unsized types!
-        unsafe { self.inner.get_unchecked(index.into_inner()) }
+        unsafe { self.inner.get_unchecked(index.value()) }
     }
 }
 
 impl<'l, T> IndexMut<Ix<'l>> for BoxedSl<'l, T> {
     fn index_mut<'a>(&'a mut self, index: Ix<'l>) -> &'a mut Self::Output {
         // can't use MutSl impl because we aren't using unsized types!
-        unsafe { self.inner.get_unchecked_mut(index.into_inner()) }
+        unsafe { self.inner.get_unchecked_mut(index.value()) }
     }
 }
 
@@ -175,7 +180,7 @@ pub struct Sl<'a, 'l, T: 'a> {
 
 impl<'a, 'l, T> Sl<'a, 'l, T> {
     pub fn from_slice(slice: &'a [T], len: Val<'l, usize>) -> Option<Self> {
-        if slice.len() == len.into_inner() {
+        if slice.len() == len.value() {
             Some(unsafe { Self::from_raw(slice.as_ptr()) })
         } else {
             None
@@ -192,7 +197,7 @@ impl<'a, 'l, T> Sl<'a, 'l, T> {
 
     pub fn as_slice(self, len: Val<'l, usize>) -> &'a [T] {
         use std::slice;
-        unsafe { slice::from_raw_parts(self.as_ptr(), len.into_inner()) }
+        unsafe { slice::from_raw_parts(self.as_ptr(), len.value()) }
     }
 }
 
@@ -208,7 +213,7 @@ impl<'a, 'l, T> fmt::Debug for Sl<'a, 'l, T> {
 impl<'a, 'l, T> Index<Ix<'l>> for Sl<'a, 'l, T> {
     type Output = T;
     fn index(&self, index: Ix<'l>) -> &Self::Output {
-        unsafe { &*self.ptr.offset(index.into_inner() as isize) }
+        unsafe { &*self.ptr.offset(index.value() as isize) }
     }
 }
 
@@ -220,7 +225,7 @@ pub struct MutSl<'a, 'l, T: 'a> {
 impl<'a, 'l, T> MutSl<'a, 'l, T> {
     pub fn from_slice(slice: &'a mut [T], len: Val<'l, usize>)
                       -> Option<Self> {
-        if slice.len() == len.into_inner() {
+        if slice.len() == len.value() {
             Some(unsafe { Self::from_raw(slice.as_mut_ptr()) })
         } else {
             None
@@ -229,12 +234,12 @@ impl<'a, 'l, T> MutSl<'a, 'l, T> {
 
     pub fn as_slice<'b>(&'b self, len: Val<'l, usize>) -> &'b [T] {
         use std::slice;
-        unsafe { slice::from_raw_parts_mut(self.ptr, len.into_inner()) }
+        unsafe { slice::from_raw_parts_mut(self.ptr, len.value()) }
     }
 
     pub fn into_slice(self, len: Val<'l, usize>) -> &'a mut [T] {
         use std::slice;
-        unsafe { slice::from_raw_parts_mut(self.ptr, len.into_inner()) }
+        unsafe { slice::from_raw_parts_mut(self.ptr, len.value()) }
     }
 
     pub unsafe fn from_raw(ptr: *mut T) -> Self {
@@ -262,13 +267,13 @@ impl<'a, 'l, T> fmt::Debug for MutSl<'a, 'l, T> {
 impl<'a, 'l, T> Index<Ix<'l>> for MutSl<'a, 'l, T> {
     type Output = T;
     fn index(&self, index: Ix<'l>) -> &Self::Output {
-        unsafe { &*self.ptr.offset(index.into_inner() as isize) }
+        unsafe { &*self.ptr.offset(index.value() as isize) }
     }
 }
 
 impl<'a, 'l, T> IndexMut<Ix<'l>> for MutSl<'a, 'l, T> {
     fn index_mut(&mut self, index: Ix<'l>) -> &mut Self::Output {
-        unsafe { &mut *self.ptr.offset(index.into_inner() as isize) }
+        unsafe { &mut *self.ptr.offset(index.value() as isize) }
     }
 }
 
@@ -281,7 +286,7 @@ pub struct IxRange<'l> {
 impl<'l> IxRange<'l> {
     /// `[start .. stop)`
     pub fn new(start: usize, stop: Ix<'l>) -> Self {
-        unsafe { Self::from_raw(start, stop.into_inner()) }
+        unsafe { Self::from_raw(start, stop.value()) }
     }
 
     /// `[0 .. stop)`
@@ -291,7 +296,7 @@ impl<'l> IxRange<'l> {
 
     /// `[start ... stop]`
     pub fn new_inclusive(start: usize, stop_inclusive: Ix<'l>) -> Self {
-        unsafe { Self::from_raw(start, stop_inclusive.into_inner() + 1) }
+        unsafe { Self::from_raw(start, stop_inclusive.value() + 1) }
     }
 
     /// `[0 .. stop]`
@@ -301,7 +306,7 @@ impl<'l> IxRange<'l> {
 
     /// `[start .. len)`
     pub fn new_from(start: usize, len: Val<'l, usize>) -> Self {
-        unsafe { Self::from_raw(start, len.into_inner()) }
+        unsafe { Self::from_raw(start, len.value()) }
     }
 
     /// `[0 .. len)`
