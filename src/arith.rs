@@ -19,6 +19,31 @@ use std::fmt;
 use std::marker::PhantomData;
 use super::{PhantomInvariantData, TyEq, Val, Value};
 
+/// Negation.
+pub struct Not<P: ?Sized>(PhantomInvariantData<P>);
+
+impl<P> Not<P> {
+    pub fn absurd(_: P) -> ! { panic!() }
+}
+
+impl<P: ?Sized> Not<P> {
+    pub unsafe fn conjure() -> Self { Not(PhantomData) }
+}
+
+// shut up clippy: we don't want Clone constraints on P
+#[cfg_attr(feature = "cargo-clippy", allow(expl_impl_clone_on_copy))]
+impl<P: ?Sized> Clone for Not<P> {
+    fn clone(&self) -> Self { *self }
+}
+
+impl<P: ?Sized> Copy for Not<P> { }
+
+impl<P: ?Sized> fmt::Debug for Not<P> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str("Not")
+    }
+}
+
 macro_rules! impl_all {
     ( $name:ident ) => {
         impl<X: ?Sized, Y: ?Sized> $name<X, Y> {
@@ -74,14 +99,6 @@ impl<'x, 'y, T> Equal<Val<'x, T>, Val<'y, T>> {
     }
 }
 
-/// Not equal to.
-pub struct NotEqual<X: ?Sized, Y: ?Sized>(
-    PhantomInvariantData<X>,
-    PhantomInvariantData<Y>,
-);
-
-impl_all!(NotEqual);
-
 /// Less than.
 pub struct Less<X: ?Sized, Y: ?Sized>(
     PhantomInvariantData<X>,
@@ -128,16 +145,29 @@ pub fn partial_equal<'a, X, Y, T>(x: &'a X, y: &'a Y) -> Option<Equal<X, Y>>
     }
 }
 
+/// Compare two values for partial equality.
+pub fn partial_not_equal<'a, X, Y, T>(x: &'a X, y: &'a Y)
+                                      -> Option<Not<Equal<X, Y>>>
+    where &'a X: Value<Value=T>,
+          &'a Y: Value<Value=T>,
+          T: PartialEq {
+    if &x.value() != &y.value() {
+        Some(unsafe { Not::conjure() })
+    } else {
+        None
+    }
+}
+
 /// Compare two values for equality.
 pub fn equal<'a, X, Y, T>(x: &'a X, y: &'a Y)
-                          -> Result<Equal<X, Y>, NotEqual<X, Y>>
+                          -> Result<Equal<X, Y>, Not<Equal<X, Y>>>
     where &'a X: Value<Value=T>,
           &'a Y: Value<Value=T>,
           T: Eq {
     if &x.value() == &y.value() {
         Ok(unsafe { Equal::conjure() })
     } else {
-        Err(unsafe { NotEqual::conjure() })
+        Err(unsafe { Not::conjure() })
     }
 }
 
@@ -147,7 +177,7 @@ pub fn partial_compare<'a, X, Y, T>(x: &'a X, y: &'a Y)
                                                      GreaterEqual<X, Y>>>
     where &'a X: Value<Value=T>,
           &'a Y: Value<Value=T>,
-          T: Ord {
+          T: PartialOrd {
     use std::cmp::Ordering;
     match PartialOrd::partial_cmp(&x.value(), &y.value()) {
         None => None,
