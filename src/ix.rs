@@ -35,8 +35,10 @@ impl<'l> Ix<'l> {
     }
 
     pub fn with<F, R>(self, callback: F) -> R
-        where F: for<'i> FnOnce(Val<'i, usize>, Less<Val<'i, usize>, Val<'l, usize>>) -> R {
-        unsafe { callback(Val::known(self.inner), Less::conjure()) }
+        where F: for<'i> FnOnce(Val<'i, usize>,
+                                Less<Val<'i, usize>, Val<'l, usize>>) -> R {
+        callback(unsafe { Val::known(self.inner) },
+                 unsafe { Less::conjure() })
     }
 
     pub fn convert<'m>(self, le: LessEqual<Val<'l, usize>, Val<'m, usize>>)
