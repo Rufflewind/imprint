@@ -3,7 +3,7 @@ use std::ops::{Deref, DerefMut, Index, IndexMut};
 use num::Zero;
 use num_iter::{Range, range};
 use super::*;
-use arith::{Less, LessEqual, compare};
+use arith::{self, Equal, Less, LessEqual};
 
 /// Represents a value less than `'l`.
 ///
@@ -27,7 +27,7 @@ impl<'l> Ix<'l> {
 
     pub fn try_new(index: usize, len: Val<'l, usize>) -> Option<Self> {
         imprint(index, |i| {
-            match compare(&i, &len) {
+            match arith::compare(&i, &len) {
                 Ok(lt) => Some(Self::new(i, lt)),
                 Err(_) => None,
             }
@@ -43,10 +43,7 @@ impl<'l> Ix<'l> {
 
     pub fn convert<'m>(self, le: LessEqual<Val<'l, usize>, Val<'m, usize>>)
                      -> Ix<'m> {
-        self.with(|i, self_lt| Ix::new(i, match le {
-            Ok(lt) => self_lt.comp(lt),
-            Err(eq) => self_lt.rsubst(eq),
-        }))
+        self.with(|i, self_lt| Ix::new(i, self_lt.rcomp_le(le)))
     }
 
     pub unsafe fn from_raw(index: usize) -> Self {
@@ -286,9 +283,19 @@ pub struct IxRange<'l> {
 }
 
 impl<'l> IxRange<'l> {
+    pub fn new_with<'i>(start: usize, stop: Val<'i, usize>,
+                        _: LessEqual<Val<'i, usize>, Val<'l, usize>>) -> Self {
+        IxRange {
+            len: PhantomData,
+            inner: range(start, stop.value()),
+        }
+    }
+
     /// `[start .. stop)`
     pub fn new(start: usize, stop: Ix<'l>) -> Self {
-        unsafe { Self::from_raw(start, stop.value()) }
+        stop.with(|i, lt| {
+            Self::new_with(start, i, LessEqual::from(lt))
+        })
     }
 
     /// `[0 .. stop)`
@@ -298,7 +305,11 @@ impl<'l> IxRange<'l> {
 
     /// `[start ... stop]`
     pub fn new_inclusive(start: usize, stop_inclusive: Ix<'l>) -> Self {
-        unsafe { Self::from_raw(start, stop_inclusive.value() + 1) }
+        stop_inclusive.with(|i, lt| {
+            arith::succ(&i, lt, |i_plus_1, _, le| {
+                Self::new_with(start, i_plus_1, le)
+            })
+        })
     }
 
     /// `[0 .. stop]`
@@ -308,19 +319,12 @@ impl<'l> IxRange<'l> {
 
     /// `[start .. len)`
     pub fn new_from(start: usize, len: Val<'l, usize>) -> Self {
-        unsafe { Self::from_raw(start, len.value()) }
+        Self::new_with(start, len, LessEqual::from(Equal::refl()))
     }
 
     /// `[0 .. len)`
     pub fn new_full(len: Val<'l, usize>) -> Self {
         Self::new_from(Zero::zero(), len)
-    }
-
-    pub unsafe fn from_raw(start: usize, stop: usize) -> Self {
-        IxRange {
-            len: PhantomData,
-            inner: range(start, stop),
-        }
     }
 }
 

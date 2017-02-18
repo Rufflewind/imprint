@@ -17,34 +17,32 @@
 
 use std::fmt;
 use std::marker::PhantomData;
-use super::{PhantomInvariantData, TyEq, Val, Value};
+use num::Integer;
+use super::{PhantomInvariantData, TyEq, Val, Value, imprint};
 
-/// Negation.
-pub struct Not<P: ?Sized>(PhantomInvariantData<P>);
+macro_rules! impl_all1 {
+    ( $name:ident ) => {
+        impl<X: ?Sized> $name<X> {
+            pub unsafe fn conjure() -> Self { $name(PhantomData) }
+        }
 
-impl<P> Not<P> {
-    pub fn absurd(_: P) -> ! { panic!() }
-}
+        // shut up clippy: we don't want Clone constraints on X
+        #[cfg_attr(feature = "cargo-clippy", allow(expl_impl_clone_on_copy))]
+        impl<X: ?Sized> Clone for $name<X> {
+            fn clone(&self) -> Self { *self }
+        }
 
-impl<P: ?Sized> Not<P> {
-    pub unsafe fn conjure() -> Self { Not(PhantomData) }
-}
+        impl<X: ?Sized> Copy for $name<X> { }
 
-// shut up clippy: we don't want Clone constraints on P
-#[cfg_attr(feature = "cargo-clippy", allow(expl_impl_clone_on_copy))]
-impl<P: ?Sized> Clone for Not<P> {
-    fn clone(&self) -> Self { *self }
-}
-
-impl<P: ?Sized> Copy for Not<P> { }
-
-impl<P: ?Sized> fmt::Debug for Not<P> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str("Not")
+        impl<X: ?Sized> fmt::Debug for $name<X> {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                f.write_str(stringify!($name))
+            }
+        }
     }
 }
 
-macro_rules! impl_all {
+macro_rules! impl_all2 {
     ( $name:ident ) => {
         impl<X: ?Sized, Y: ?Sized> $name<X, Y> {
             pub unsafe fn conjure() -> Self { $name(PhantomData, PhantomData) }
@@ -65,6 +63,15 @@ macro_rules! impl_all {
         }
     }
 }
+
+/// Negation.
+pub struct Not<P: ?Sized>(PhantomInvariantData<P>);
+
+impl<P> Not<P> {
+    pub fn absurd(_: P) -> ! { panic!() }
+}
+
+impl_all1!(Not);
 
 /// Equal to.
 ///
@@ -89,7 +96,7 @@ impl<X: ?Sized, Y: ?Sized> Equal<X, Y> {
     }
 }
 
-impl_all!(Equal);
+impl_all2!(Equal);
 
 impl<'x, 'y, T> Equal<Val<'x, T>, Val<'y, T>> {
     /// If two `Val`s are equal, then their types are equal too.
@@ -120,15 +127,59 @@ impl<X: ?Sized, Y: ?Sized> Less<X, Y> {
     pub fn comp<Z: ?Sized>(self, _: Less<Y, Z>) -> Less<X, Z> {
         unsafe { Less::conjure() }
     }
+
+    /// `(X < Y, Y <= Z) -> X < Z`
+    pub fn rcomp_le<Z: ?Sized>(self, _: LessEqual<Y, Z>) -> Less<X, Z> {
+        unsafe { Less::conjure() }
+    }
+
+    /// `(X < Y, Z <= X) -> Z < Y`
+    pub fn lcomp_le<Z: ?Sized>(self, _: LessEqual<Z, X>) -> Less<Z, Y> {
+        unsafe { Less::conjure() }
+    }
 }
 
-impl_all!(Less);
+impl_all2!(Less);
+
+/// Less than or equal to (but we don't know which is the case).
+pub struct LessEqual<X: ?Sized, Y: ?Sized>(
+    PhantomInvariantData<X>,
+    PhantomInvariantData<Y>,
+);
+
+impl<X: ?Sized, Y: ?Sized> From<Less<X, Y>> for LessEqual<X, Y> {
+    fn from(_: Less<X, Y>) -> Self {
+        unsafe { LessEqual::conjure() }
+    }
+}
+
+impl<X: ?Sized, Y: ?Sized> From<Equal<X, Y>> for LessEqual<X, Y> {
+    fn from(_: Equal<X, Y>) -> Self {
+        unsafe { LessEqual::conjure() }
+    }
+}
+
+impl<X: ?Sized, Y: ?Sized> LessEqual<X, Y> {
+    /// `(X <= Y, X = Z) -> Z <= Y`
+    pub fn lsubst<Z: ?Sized>(self, _: Equal<X, Z>) -> LessEqual<Z, Y> {
+        unsafe { LessEqual::conjure() }
+    }
+
+    /// `(X <= Y, Y = Z) -> X <= Z`
+    pub fn rsubst<Z: ?Sized>(self, _: Equal<Y, Z>) -> LessEqual<X, Z> {
+        unsafe { LessEqual::conjure() }
+    }
+
+    /// `(X <= Y, Y <= Z) -> X <= Z`
+    pub fn comp<Z: ?Sized>(self, _: LessEqual<Y, Z>) -> LessEqual<X, Z> {
+        unsafe { LessEqual::conjure() }
+    }
+}
+
+impl_all2!(LessEqual);
 
 /// Greater than.
 pub type Greater<X, Y> = Less<Y, X>;
-
-/// Less than or equal to.
-pub type LessEqual<X, Y> = Result<Less<X, Y>, Equal<X, Y>>;
 
 /// Greater than or equal to.
 pub type GreaterEqual<X, Y> = LessEqual<Y, X>;
@@ -174,7 +225,8 @@ pub fn equal<'a, X, Y, T>(x: &'a X, y: &'a Y)
 /// Compare two values for partial ordering.
 pub fn partial_compare<'a, X, Y, T>(x: &'a X, y: &'a Y)
                                     -> Option<Result<Less<X, Y>,
-                                                     GreaterEqual<X, Y>>>
+                                                     Result<Greater<X, Y>,
+                                                            Equal<X, Y>>>>
     where &'a X: Value<Value=T>,
           &'a Y: Value<Value=T>,
           T: PartialOrd {
@@ -191,7 +243,9 @@ pub fn partial_compare<'a, X, Y, T>(x: &'a X, y: &'a Y)
 
 /// Compare two values for ordering.
 pub fn compare<'a, X, Y, T>(x: &'a X, y: &'a Y)
-                            -> Result<Less<X, Y>, GreaterEqual<X, Y>>
+                            -> Result<Less<X, Y>,
+                                      Result<Greater<X, Y>,
+                                             Equal<X, Y>>>
     where &'a X: Value<Value=T>,
           &'a Y: Value<Value=T>,
           T: Ord {
@@ -201,6 +255,20 @@ pub fn compare<'a, X, Y, T>(x: &'a X, y: &'a Y)
         Ordering::Equal => Err(Err(unsafe { Equal::conjure() })),
         Ordering::Greater => Err(Ok(unsafe { Less::conjure() })),
     }
+}
+
+pub fn succ<'x, 'y, I, F, R>(x: &Val<'x, I>,
+                             _: Less<Val<'x, I>, Val<'y, I>>,
+                             callback: F) -> R
+    where F: for<'z> FnOnce(Val<'z, I>,
+                            Less<Val<'x, I>, Val<'z, I>>,
+                            LessEqual<Val<'z, I>, Val<'y, I>>) -> R,
+          I: Clone + Integer {
+    imprint(x.value().clone() + I::one(), |z| {
+        callback(z,
+                 unsafe { Less::conjure() },
+                 unsafe { LessEqual::conjure() })
+    })
 }
 
 #[cfg(test)]
