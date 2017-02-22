@@ -28,7 +28,15 @@ pub type PhantomInvariantData<T> = PhantomData<*mut T>;
 pub type PhantomInvariantLifetime<'a> = PhantomData<Cell<&'a mut ()>>;
 
 /// Any type that implements `Value` represents a promoted value.
-pub trait Value {
+///
+/// ## Unsafe assumptions
+///
+/// This trait is unsafe: any type that implements `Value` must effectively
+/// have only *one* possible value.  Failing to abide by this will lead to
+/// unsafety.  (E.g. if one has both `Equal<Good1, Bad>` and `Equal<Bad,
+/// Good2>`, then by transitivity we have `Equal<Good1, Good2>`, but `Bad`
+/// could be multivalued!)
+pub unsafe trait Value {
     /// The demoted type.
     type Value;
 
@@ -169,14 +177,14 @@ impl<'x, T> Deref for Val<'x, T> {
     }
 }
 
-impl<'x, T> Value for Val<'x, T> {
+unsafe impl<'x, T> Value for Val<'x, T> {
     type Value = T;
     fn value(self) -> Self::Value {
         self.inner
     }
 }
 
-impl<'a, 'x, T> Value for &'a Val<'x, T> {
+unsafe impl<'a, 'x, T> Value for &'a Val<'x, T> {
     type Value = &'a T;
     fn value(self) -> Self::Value {
         &self.inner

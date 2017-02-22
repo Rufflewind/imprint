@@ -51,6 +51,10 @@ impl<'l> Ix<'l> {
             Ix::new(i, Less::conjure())
         })
     }
+
+    pub fn into_inner(self) -> usize {
+        self.inner
+    }
 }
 
 impl<'i> fmt::Debug for Ix<'i> {
@@ -77,13 +81,6 @@ impl<'l> Deref for Ix<'l> {
     type Target = usize;
     fn deref(&self) -> &Self::Target {
         &self.inner
-    }
-}
-
-impl<'l> Value for Ix<'l> {
-    type Value = usize;
-    fn value(self) -> Self::Value {
-        self.inner
     }
 }
 
@@ -126,6 +123,10 @@ impl<'l, T> BoxedSl<'l, T> {
     pub fn as_mut_slice<'a>(&'a mut self) -> MutSl<'a, 'l, T> {
         unsafe { MutSl::from_raw((**self).as_mut_ptr()) }
     }
+
+    pub fn into_inner(self) -> Box<[T]> {
+        self.inner
+    }
 }
 
 impl<'l, T> Deref for BoxedSl<'l, T> {
@@ -141,13 +142,6 @@ impl<'l, T> DerefMut for BoxedSl<'l, T> {
     }
 }
 
-impl<'l, T> Value for BoxedSl<'l, T> {
-    type Value = Box<[T]>;
-    fn value(self) -> Self::Value {
-        self.inner
-    }
-}
-
 impl<'a, 'l, T: fmt::Debug> fmt::Debug for BoxedSl<'l, T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str("BoxedSl(")?;
@@ -160,14 +154,14 @@ impl<'l, T> Index<Ix<'l>> for BoxedSl<'l, T> {
     type Output = T;
     fn index(&self, index: Ix<'l>) -> &Self::Output {
         // can't use Sl impl because we aren't using unsized types!
-        unsafe { self.inner.get_unchecked(index.value()) }
+        unsafe { self.inner.get_unchecked(*index) }
     }
 }
 
 impl<'l, T> IndexMut<Ix<'l>> for BoxedSl<'l, T> {
     fn index_mut<'a>(&'a mut self, index: Ix<'l>) -> &'a mut Self::Output {
         // can't use MutSl impl because we aren't using unsized types!
-        unsafe { self.inner.get_unchecked_mut(index.value()) }
+        unsafe { self.inner.get_unchecked_mut(*index) }
     }
 }
 
@@ -212,7 +206,7 @@ impl<'a, 'l, T> fmt::Debug for Sl<'a, 'l, T> {
 impl<'a, 'l, T> Index<Ix<'l>> for Sl<'a, 'l, T> {
     type Output = T;
     fn index(&self, index: Ix<'l>) -> &Self::Output {
-        unsafe { &*self.ptr.offset(index.value() as isize) }
+        unsafe { &*self.ptr.offset(*index as isize) }
     }
 }
 
@@ -266,13 +260,13 @@ impl<'a, 'l, T> fmt::Debug for MutSl<'a, 'l, T> {
 impl<'a, 'l, T> Index<Ix<'l>> for MutSl<'a, 'l, T> {
     type Output = T;
     fn index(&self, index: Ix<'l>) -> &Self::Output {
-        unsafe { &*self.ptr.offset(index.value() as isize) }
+        unsafe { &*self.ptr.offset(*index as isize) }
     }
 }
 
 impl<'a, 'l, T> IndexMut<Ix<'l>> for MutSl<'a, 'l, T> {
     fn index_mut(&mut self, index: Ix<'l>) -> &mut Self::Output {
-        unsafe { &mut *self.ptr.offset(index.value() as isize) }
+        unsafe { &mut *self.ptr.offset(*index as isize) }
     }
 }
 
