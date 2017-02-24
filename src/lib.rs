@@ -22,7 +22,7 @@ use std::ops::Deref;
 use std::{fmt, mem};
 
 /// Like `PhantomData` but ensures that `T` is always invariant.
-pub type PhantomInvariantData<T> = PhantomData<*mut T>;
+pub type PhantomInvariantType<T> = PhantomData<*mut T>;
 
 /// Like `PhantomData` but ensures that `'a` is always invariant.
 pub type PhantomInvariantLifetime<'a> = PhantomData<Cell<&'a mut ()>>;
@@ -233,8 +233,8 @@ unsafe impl<'a, 'x, T> Value for &'a Val<'x, T> {
 /// behavior.  Most of the time, it only makes sense to equate generic phantom
 /// lifetime parameters.
 pub struct TyEq<T: ?Sized, U: ?Sized>(
-    PhantomInvariantData<T>,
-    PhantomInvariantData<U>,
+    PhantomInvariantType<T>,
+    PhantomInvariantType<U>,
 );
 
 impl<T: ?Sized> TyEq<T, T> {
@@ -298,7 +298,7 @@ impl<T: ?Sized, U: ?Sized> TyEq<T, U> {
 
     /// Exchange `T` and `U` (symmetry).
     pub fn sym(self) -> TyEq<U, T> {
-        struct F<T: ?Sized>(PhantomInvariantData<T>);
+        struct F<T: ?Sized>(PhantomInvariantType<T>);
         impl<T: ?Sized, U: ?Sized> TyFn<T> for F<U> {
             type Output = TyEq<T, U>;
         }
@@ -307,7 +307,7 @@ impl<T: ?Sized, U: ?Sized> TyEq<T, U> {
 
     /// Compose two equalities (transitivity).
     pub fn trans<R: ?Sized>(self, other: TyEq<U, R>) -> TyEq<T, R> {
-        struct F<T: ?Sized>(PhantomInvariantData<T>);
+        struct F<T: ?Sized>(PhantomInvariantType<T>);
         impl<T: ?Sized, U: ?Sized> TyFn<T> for F<U> {
             type Output = TyEq<U, T>;
         }
@@ -391,7 +391,7 @@ impl<T: ?Sized> TyFn<T> for IdF {
 pub unsafe trait TyFnL<'a> { type Output; }
 
 /// Allows `Val` to be parameterized by its lifetime parameter.
-pub struct ValF<T>(PhantomInvariantData<T>);
+pub struct ValF<T>(PhantomInvariantType<T>);
 
 unsafe impl<'a, T> TyFnL<'a> for ValF<T> { type Output = Val<'a, T>; }
 

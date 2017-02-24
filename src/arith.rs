@@ -18,7 +18,7 @@
 use std::fmt;
 use std::marker::PhantomData;
 use num::Integer;
-use super::{PhantomInvariantData, TyEq, Val, Value, imprint};
+use super::{PhantomInvariantType, TyEq, Val, Value, imprint};
 
 macro_rules! impl_all1 {
     ( $name:ident ) => {
@@ -65,7 +65,7 @@ macro_rules! impl_all2 {
 }
 
 /// Negation.
-pub struct Not<P: ?Sized>(PhantomInvariantData<P>);
+pub struct Not<P: ?Sized>(PhantomInvariantType<P>);
 
 impl<P> Not<P> {
     pub fn absurd(_: P) -> ! { panic!() }
@@ -78,8 +78,8 @@ impl_all1!(Not);
 /// This is separate from `TyEq` because `TyEq` only holds for `Val`, whereas
 /// `Equal` can be used in more general contexts.
 pub struct Equal<X: ?Sized, Y: ?Sized>(
-    PhantomInvariantData<X>,
-    PhantomInvariantData<Y>,
+    PhantomInvariantType<X>,
+    PhantomInvariantType<Y>,
 );
 
 impl<X: ?Sized, Y: ?Sized> Equal<X, Y> {
@@ -108,8 +108,8 @@ impl<'x, 'y, T> Equal<Val<'x, T>, Val<'y, T>> {
 
 /// Less than.
 pub struct Less<X: ?Sized, Y: ?Sized>(
-    PhantomInvariantData<X>,
-    PhantomInvariantData<Y>,
+    PhantomInvariantType<X>,
+    PhantomInvariantType<Y>,
 );
 
 impl<X: ?Sized, Y: ?Sized> Less<X, Y> {
@@ -143,8 +143,8 @@ impl_all2!(Less);
 
 /// Less than or equal to (but we don't know which is the case).
 pub struct LessEqual<X: ?Sized, Y: ?Sized>(
-    PhantomInvariantData<X>,
-    PhantomInvariantData<Y>,
+    PhantomInvariantType<X>,
+    PhantomInvariantType<Y>,
 );
 
 impl<X: ?Sized, Y: ?Sized> From<Less<X, Y>> for LessEqual<X, Y> {

@@ -7,8 +7,8 @@ use arith::{self, Equal, Less, LessEqual};
 
 /// Represents a value less than `'l`.
 ///
-/// Equivalent to: `exists<'i> (Less<Val<'i, usize>, Val<'l, usize>>, Val<'i,
-/// usize>)`.
+/// Semantically equivalent to:
+/// `exists<'i> (Less<Val<'i, usize>, Val<'l, usize>>, Val<'i, usize>)`.
 ///
 /// In the future, `Ix` will be changed to a more transparent implementation
 /// using `Exists` whenever the ICEs get fixed.
@@ -84,6 +84,7 @@ impl<'l> Deref for Ix<'l> {
     }
 }
 
+/// An owned variant of `Sl`.
 pub struct BoxedSl<'l, T> {
     len: PhantomData<Val<'l, usize>>,
     inner: Box<[T]>,
@@ -165,6 +166,7 @@ impl<'l, T> IndexMut<Ix<'l>> for BoxedSl<'l, T> {
     }
 }
 
+/// An immutable slice.
 #[derive(Clone, Copy)]
 pub struct Sl<'a, 'l, T: 'a> {
     len: PhantomData<(Val<'l, usize>, &'a T)>,
@@ -210,6 +212,7 @@ impl<'a, 'l, T> Index<Ix<'l>> for Sl<'a, 'l, T> {
     }
 }
 
+/// A mutable variant of `Sl`.
 pub struct MutSl<'a, 'l, T: 'a> {
     len: PhantomData<(Val<'l, usize>, &'a mut T)>,
     ptr: *mut T,
