@@ -1,10 +1,12 @@
 //! Provides the ability to imprint values at the type level, enabling
 //! compile-time validation of values that only exist at run time.
 //!
-//! *Heavily inspired by Edward Kmett's [`reflection`][reflection] and
-//! [`eq`][eq] libraries, as well as Gankro's [sound unchecked
-//! indexing][sound] approach.*
+//! *Heavily inspired by Richard Eisenberg's [`singletons`][singletons]
+//! library, Edward Kmett's [`reflection`][reflection] and [`eq`][eq]
+//! libraries, as well as Gankro's [sound unchecked indexing][sound]
+//! approach.*
 //!
+//! [singletons]: https://hackage.haskell.org/package/singletons
 //! [reflection]: https://hackage.haskell.org/package/reflection
 //! [eq]: https://hackage.haskell.org/package/eq
 //! [sound]: https://reddit.com/r/rust/comments/3oo0oe
@@ -391,9 +393,22 @@ impl<T: ?Sized> TyFn<T> for IdF {
 pub unsafe trait TyFnL<'a> { type Output; }
 
 /// Allows `Val` to be parameterized by its lifetime parameter.
-pub struct ValF<T>(PhantomInvariantType<T>);
+/// Here, `F` can be any arbitrary type function.
+///
+/// Here, `F` is required to be *parametric*, but atm we have no way to
+/// enforce that.  The higher-ranked trait bound will ensure parmetricity for
+/// now, but that may change in the future.
+pub struct ValF<F: ?Sized, T>(
+    PhantomInvariantType<F>,
+    PhantomInvariantType<T>,
+);
 
-unsafe impl<'a, T> TyFnL<'a> for ValF<T> { type Output = Val<'a, T>; }
+unsafe impl<'x, F, T> TyFnL<'x> for ValF<F, T>
+    where for<'y> F: TyFn<Val<'y, T>>,
+          <F as TyFn<Val<'x, T>>>::Output: Sized
+{
+    type Output = <F as TyFn<Val<'x, T>>>::Output;
+}
 
 /// An object with an existentially quantified lifetime.
 ///
@@ -418,9 +433,9 @@ unsafe impl<'a, T> TyFnL<'a> for ValF<T> { type Output = Val<'a, T>; }
 ///
 /// ```
 /// # #[allow(unused)] {
-/// use imprint::{Exists, Val, Value, ValF, imprint};
+/// use imprint::{Exists, IdF, Val, Value, ValF, imprint};
 ///
-/// pub struct ExistsVal<T>(Exists<ValF<T>>);
+/// pub struct ExistsVal<T>(Exists<ValF<IdF, T>>);
 ///
 /// impl<T> ExistsVal<T> {
 ///     // existential constructor (introduction rule)
@@ -525,8 +540,8 @@ mod tests {
     #[test]
     #[allow(unused)]
     fn exists() {
-        let x = imprint(0, |x| Exists::<ValF<i64>>::new(x));
+        let x = imprint(0, |x| Exists::<ValF<IdF, i64>>::new(x));
         // TODO: uncomment the line below when rust#39779 gets fixed
-        // let y = x.with_ref(|r| Exists::<ValF<i64>>::new(Clone::clone(r)));
+        // let y = x.with_ref(|r| Exists::<ValF<IdF, i64>>::new(Clone::clone(r)));
     }
 }

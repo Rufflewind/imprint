@@ -27,6 +27,8 @@ extern crate imprint;
   - [Type-level values](docs/type-level-values.md)
   - [Type equality](docs/type-equality.md)
   - [Indexing](docs/indexing.md)
+  - [Existential types](docs/existential-types.md)
+  - [Sound logic in a Turing-complete language](docs/sound-logic-in-a-turing-complete-language.md)
 
 ## License
 
