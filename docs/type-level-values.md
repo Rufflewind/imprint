@@ -10,7 +10,7 @@ One of the most powerful features in Rust is that of *higher-ranked trait bounds
 
 Essentially, we're trying to mimic dependent types in Rust.  In your typical garden-variety dependent type theory, there is a thing called the "dependent function type" or "Pi-type":
 
-    Π[a: A] -> B(a)
+    (a: A) -> B(a)
 
 If you squint a bit, it looks just like an ordinary function type:
 
@@ -118,3 +118,55 @@ The other reason why this is tedious is that we don't have an SMT solver / theor
 Ideally, we want the ability to talk about "every day" arithmetic *easily* without compromising the ability to talk about domain-specific operations and relations.  We kind of have the latter, but the former involves making the Rust compiler smart enough to solve proofs for us.
 
 One possibility is to have like a preprocessor that is run at compile time which leverages a theorem prover to construct the tedious proofs and then splices them into the source code for Rust to verify.
+
+## Towards dependent types
+
+In a dependently typed system, one would need to introduce a *relevant* Π-type:
+
+    (a: A) -> B(a)
+
+The “relevant” part is important: it means the value of `a` is not just erased at compile time.  We can treat it as a *shorthand* for the description of two separate functions:
+
+    (a: A) -> a*         // singleton promotion
+    (a: a*: A*) -> B(a*)
+
+The things that are permitted in the body of this dependent function must be “promotable” to the type level.  This means const-expressions are usually okay.  Recursive things are okay (if they don’t terminate, the compilation will also fail to terminate though).  Mutations are not, and neither is anything I/O related, since they can’t be interpreted at the type level.
+
+In effect, what this does mainly is to remove a lot of the boilerplate with the singleton-based approach, because now the operations and relations can be automatically generated from the Π-fns.
+
+Doing this Rust would be quite interesting, to say the least.  Syntactically we could write either:
+
+~~~rust
+fn f<const a: A>() -> B<a>
+~~~
+
+or
+
+~~~rust
+fn f(const a: A) -> B(a)
+~~~
+
+It might even make sense to have both, actually.  The former would be reserved for irrelevant functions where `a` is erased and always monomorphized, whereas the latter would be for relevant functions where the value of `a` is kept at run time.
+
+The problem with `const` is that it’s quite infectious: if you want a `const` value everything upstream has to be `const`.  However, for relevant functions this shouldn’t a problem because `a: A` can be implicitly *promoted* to the type level whenever a function that asks for `const` gets called, much like how `imprint` works in this library (but automatic).  One could alternatively have an explicit promotion:
+
+~~~rust
+match a {
+    const a => {
+        // lasts until end of scope
+        …
+    }
+}
+~~~
+
+or
+
+~~~rust
+const a = a;
+…
+// lasts until end of scope
+~~~
+
+(The overloading of the `const` keyword is quite confusing here.  Maybe `pure` would be a better choice?)
+
+Explicit promotion is useful in that it allows you to control the scope more easily (the alternative would have been to write a one-off function just for that).
