@@ -117,11 +117,11 @@ impl<'l, T> BoxedSl<'l, T> {
         unsafe { Val::known((**self).len()) }
     }
 
-    pub fn as_slice<'a>(&'a self) -> Sl<'a, 'l, T> {
+    pub fn as_sl<'a>(&'a self) -> Sl<'a, 'l, T> {
         unsafe { Sl::from_raw((**self).as_ptr()) }
     }
 
-    pub fn as_mut_slice<'a>(&'a mut self) -> MutSl<'a, 'l, T> {
+    pub fn as_mut_sl<'a>(&'a mut self) -> MutSl<'a, 'l, T> {
         unsafe { MutSl::from_raw((**self).as_mut_ptr()) }
     }
 
@@ -154,24 +154,29 @@ impl<'a, 'l, T: fmt::Debug> fmt::Debug for BoxedSl<'l, T> {
 impl<'l, T> Index<Ix<'l>> for BoxedSl<'l, T> {
     type Output = T;
     fn index(&self, index: Ix<'l>) -> &Self::Output {
-        // can't use Sl impl because we aren't using unsized types!
-        unsafe { self.inner.get_unchecked(*index) }
+        self.as_sl().get(index)
     }
 }
 
 impl<'l, T> IndexMut<Ix<'l>> for BoxedSl<'l, T> {
     fn index_mut<'a>(&'a mut self, index: Ix<'l>) -> &'a mut Self::Output {
-        // can't use MutSl impl because we aren't using unsized types!
-        unsafe { self.inner.get_unchecked_mut(*index) }
+        self.as_mut_sl().get_mut(index)
     }
 }
 
 /// An immutable slice.
-#[derive(Clone, Copy)]
 pub struct Sl<'a, 'l, T: 'a> {
     len: PhantomData<(Val<'l, usize>, &'a T)>,
     ptr: *const T,
 }
+
+impl<'a, 'l, T> Clone for Sl<'a, 'l, T> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<'a, 'l, T> Copy for Sl<'a, 'l, T> {}
 
 impl<'a, 'l, T> Sl<'a, 'l, T> {
     pub fn from_slice(slice: &'a [T], len: Val<'l, usize>) -> Option<Self> {
@@ -186,13 +191,17 @@ impl<'a, 'l, T> Sl<'a, 'l, T> {
         Sl { len: PhantomData, ptr: ptr }
     }
 
-    pub fn as_ptr(self) -> *const T {
+    fn get(self, index: Ix<'l>) -> &'a T {
+        unsafe { &*self.ptr.offset(*index as isize) }
+    }
+
+    pub fn into_ptr(self) -> *const T {
         self.ptr
     }
 
-    pub fn as_slice(self, len: Val<'l, usize>) -> &'a [T] {
+    pub fn into_slice(self, len: Val<'l, usize>) -> &'a [T] {
         use std::slice;
-        unsafe { slice::from_raw_parts(self.as_ptr(), len.value()) }
+        unsafe { slice::from_raw_parts(self.into_ptr(), len.value()) }
     }
 }
 
@@ -208,7 +217,7 @@ impl<'a, 'l, T> fmt::Debug for Sl<'a, 'l, T> {
 impl<'a, 'l, T> Index<Ix<'l>> for Sl<'a, 'l, T> {
     type Output = T;
     fn index(&self, index: Ix<'l>) -> &Self::Output {
-        unsafe { &*self.ptr.offset(*index as isize) }
+        self.get(index)
     }
 }
 
@@ -228,12 +237,16 @@ impl<'a, 'l, T> MutSl<'a, 'l, T> {
         }
     }
 
-    pub fn as_slice<'b>(&'b self, len: Val<'l, usize>) -> &'b [T] {
+    pub fn as_sl<'b>(&'b self) -> Sl<'b, 'l, T> {
+        unsafe { Sl::from_raw(self.ptr) }
+    }
+
+    pub fn as_slice(&self, len: Val<'l, usize>) -> &[T] {
         use std::slice;
         unsafe { slice::from_raw_parts_mut(self.ptr, len.value()) }
     }
 
-    pub fn into_slice(self, len: Val<'l, usize>) -> &'a mut [T] {
+    pub fn into_mut_slice(self, len: Val<'l, usize>) -> &'a mut [T] {
         use std::slice;
         unsafe { slice::from_raw_parts_mut(self.ptr, len.value()) }
     }
@@ -242,11 +255,15 @@ impl<'a, 'l, T> MutSl<'a, 'l, T> {
         MutSl { len: PhantomData, ptr: ptr }
     }
 
-    pub fn as_ptr(self) -> *const T {
+    fn get_mut(&mut self, index: Ix<'l>) -> &'a mut T {
+        unsafe { &mut *self.ptr.offset(*index as isize) }
+    }
+
+    pub fn into_ptr(self) -> *const T {
         self.ptr
     }
 
-    pub fn as_mut_ptr(self) -> *mut T {
+    pub fn into_mut_ptr(self) -> *mut T {
         self.ptr
     }
 }
@@ -263,13 +280,13 @@ impl<'a, 'l, T> fmt::Debug for MutSl<'a, 'l, T> {
 impl<'a, 'l, T> Index<Ix<'l>> for MutSl<'a, 'l, T> {
     type Output = T;
     fn index(&self, index: Ix<'l>) -> &Self::Output {
-        unsafe { &*self.ptr.offset(*index as isize) }
+        self.as_sl().get(index)
     }
 }
 
 impl<'a, 'l, T> IndexMut<Ix<'l>> for MutSl<'a, 'l, T> {
     fn index_mut(&mut self, index: Ix<'l>) -> &mut Self::Output {
-        unsafe { &mut *self.ptr.offset(*index as isize) }
+        self.get_mut(index)
     }
 }
 
