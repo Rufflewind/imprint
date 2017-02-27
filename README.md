@@ -29,6 +29,7 @@ extern crate imprint;
   - [Indexing](docs/indexing.md)
   - [Existential types](docs/existential-types.md)
   - [Sound logic in a Turing-complete language](docs/sound-logic-in-a-turing-complete-language.md)
+  - [Phantom polymorphism](docs/phantom-polymorphism.md)
 
 ## License
 
