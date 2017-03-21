@@ -54,7 +54,7 @@ Therefore, the only way we can handle this is to make negation proofs unsafe to 
 
     (A → ⊥) → ⊥) → A
 
-Double-negation elimination only works in a language that supports setjmp/longjmp mechanics.  In Rust, we could conceivably do this using `panic` and `catch_unwind` but that sounds awfully hacky (and possibly dangerous?).  Or we could spawn a thread and catch its panic, which is really inefficient but works.
+Double-negation elimination only works in a language that supports setjmp/longjmp mechanics.  In Rust, we could conceivably do this using `resume_unwind` and `catch_unwind` but that sounds awfully hacky (avoid directly calling `panic` because that would call the panic handler, which prints a message).  Or we could spawn a thread and catch its panic, which is really inefficient but works.
 
 ~~~rust
 // cargo-deps: snowflake, void
@@ -73,33 +73,17 @@ struct Escaping(ProcessUniqueId, Box<Any + Send>);
 
 impl<T: Send + 'static> Escape<T> {
     pub fn absurd(self, x: T) -> Void {
-        panic!(Escaping(self.1, Box::new(x)))
+        panic::resume_unwind(Box::new(Escaping(self.1, Box::new(x))))
     }
-}
-
-/// Silence the panic messages to stderr if the payload is Escaping.
-fn install_panic_handler() {
-    use std::sync;
-    static INSTALLER: sync::Once = sync::ONCE_INIT;
-    INSTALLER.call_once(|| {
-        let p = panic::take_hook();
-        panic::set_hook(Box::new(move |info| {
-            if !info.payload().is::<Escaping>() {
-                p(info)
-            }
-        }));
-    })
 }
 
 pub fn dne<T, F>(callback: F) -> T
     where T: Send + 'static,
           F: FnOnce(Escape<T>) -> Void + UnwindSafe {
-    install_panic_handler();
     let id = ProcessUniqueId::new();
+    let r = panic::catch_unwind(|| callback(Escape(PhantomData, id)));
     #[allow(unreachable_patterns)]
-    match panic::catch_unwind(|| {
-        callback(Escape(PhantomData, id))
-    }).void_unwrap_err().downcast::<Escaping>() {
+    match r.void_unwrap_err().downcast::<Escaping>() {
         Ok(x) => if x.0 == id {
             *x.1.downcast::<T>().unwrap()
         } else {
