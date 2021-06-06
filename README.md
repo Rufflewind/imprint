@@ -1,7 +1,7 @@
 # `imprint 🐾`
 
 [![Crates.io](https://img.shields.io/crates/v/imprint.svg)](https://crates.io/crates/imprint)
-[![Build status](https://travis-ci.org/Rufflewind/imprint.svg?branch=master)](https://travis-ci.org/Rufflewind/imprint)
+[![Build status](https://github.com/Rufflewind/imprint/actions/workflows/build.yml/badge.svg)](https://github.com/Rufflewind/imprint/actions/workflows/build.yml)
 
 **Quick links:** [Documentation](https://rufflewind.com/imprint)
 
